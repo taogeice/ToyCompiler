@@ -21,7 +21,7 @@
 
 - **模块化设计**: 每个模块都有明确的职责边界
 - **分层架构**: 前端、中端、后端的清晰分离
-- **可扩展性**: 支持插件系统和新的目标平台
+- **可扩展性**: 支持插件系统和x86特性扩展
 - **可测试性**: 完整的测试覆盖和工具支持
 - **文档驱动**: 详细的文档和示例
 
@@ -35,33 +35,33 @@ modern-c-compiler/
 │   ├── frontend/                     # 前端处理模块
 │   │   ├── lexer/                    # 词法分析器
 │   │   │   ├── lexer.h               # 词法分析器主接口
-│   │   │   ├── lexer.cpp             # 词法分析器实现
+│   │   │   ├── lexer.c             # 词法分析器实现
 │   │   │   ├── token.h               # Token定义和数据结构
-│   │   │   ├── token.cpp             # Token实现
-│   │   │   ├── tokenizer.cpp         # 分词器实现
-│   │   │   └── error_handler.cpp     # 词法错误处理
+│   │   │   ├── token.c             # Token实现
+│   │   │   ├── tokenizer.c         # 分词器实现
+│   │   │   └── error_handler.c     # 词法错误处理
 │   │   ├── parser/                   # 语法分析器
 │   │   │   ├── parser.h              # 语法分析器主接口
-│   │   │   ├── parser.cpp            # 语法分析器实现
+│   │   │   ├── parser.c            # 语法分析器实现
 │   │   │   ├── grammar.h             # 语法规则定义
-│   │   │   ├── grammar.cpp           # 语法规则实现
-│   │   │   ├── error_recovery.cpp    # 错误恢复机制
-│   │   │   └── precedence.cpp        # 运算符优先级
+│   │   │   ├── grammar.c           # 语法规则实现
+│   │   │   ├── error_recovery.c    # 错误恢复机制
+│   │   │   └── precedence.c        # 运算符优先级
 │   │   ├── ast/                      # 抽象语法树
 │   │   │   ├── ast.h                 # AST基础定义
 │   │   │   ├── ast_nodes.h           # AST节点类型定义
-│   │   │   ├── ast_nodes.cpp         # AST节点实现
-│   │   │   ├── ast_builder.cpp       # AST构建器
+│   │   │   ├── ast_nodes.c         # AST节点实现
+│   │   │   ├── ast_builder.c       # AST构建器
 │   │   │   ├── ast_visitor.h         # 访问者模式接口
-│   │   │   ├── ast_dumper.cpp        # AST打印工具
-│   │   │   └── ast_utils.cpp         # AST工具函数
+│   │   │   ├── ast_dumper.c        # AST打印工具
+│   │   │   └── ast_utils.c         # AST工具函数
 │   │   ├── semanticanalyzer/         # 语义分析器
 │   │   │   ├── semanticanalyzer.h    # 语义分析器接口
-│   │   │   ├── semanticanalyzer.cpp  # 语义分析器实现
-│   │   │   ├── typechecker.cpp       # 类型检查器
-│   │   │   ├── scope_analyzer.cpp    # 作用域分析器
-│   │   │   ├── constant_evaluator.cpp # 常量求值器
-│   │   │   └── diagnostics.cpp       # 语义诊断
+│   │   │   ├── semanticanalyzer.c  # 语义分析器实现
+│   │   │   ├── typechecker.c       # 类型检查器
+│   │   │   ├── scope_analyzer.c    # 作用域分析器
+│   │   │   ├── constant_evaluator.c # 常量求值器
+│   │   │   └── diagnostics.c       # 语义诊断
 │   │   └── preprocessing/            # 预处理器
 │   │       ├── preprocessor.h        # 预处理器接口
 │   │       ├── macro_expander.cpp    # 宏展开器
@@ -70,28 +70,28 @@ modern-c-compiler/
 │   ├── midend/                       # 中端处理模块
 │   │   ├── ir/                       # 中间表示
 │   │   │   ├── ir.h                  # IR基础定义
-│   │   │   ├── ir_builder.cpp        # IR构建器
+│   │   │   ├── ir_builder.c        # IR构建器
 │   │   │   ├── ir_instruction.h      # 指令定义
-│   │   │   ├── ir_instruction.cpp    # 指令实现
-│   │   │   ├── ir_types.cpp          # IR类型系统
-│   │   │   ├── basic_block.cpp       # 基本块实现
-│   │   │   ├── function.cpp          # 函数实现
-│   │   │   └── module.cpp            # 模块实现
+│   │   │   ├── ir_instruction.c    # 指令实现
+│   │   │   ├── ir_types.c          # IR类型系统
+│   │   │   ├── basic_block.c       # 基本块实现
+│   │   │   ├── function.c          # 函数实现
+│   │   │   └── module.c            # 模块实现
 │   │   ├── optimizer/                # 优化器
 │   │   │   ├── optimizer.h           # 优化器主接口
-│   │   │   ├── optimizer.cpp         # 优化器实现
+│   │   │   ├── optimizer.c         # 优化器实现
 │   │   │   ├── optimization_pass.h   # 优化Pass基类
-│   │   │   ├── pass_manager.cpp      # Pass管理器
-│   │   │   ├── dataflow.cpp          # 数据流分析
-│   │   │   ├── control_flow.cpp      # 控制流分析
-│   │   │   ├── liveness.cpp          # 活跃变量分析
+│   │   │   ├── pass_manager.c      # Pass管理器
+│   │   │   ├── dataflow.c          # 数据流分析
+│   │   │   ├── control_flow.c      # 控制流分析
+│   │   │   ├── liveness.c          # 活跃变量分析
 │   │   │   └── passes/               # 具体优化Pass
-│   │   │       ├── constant_folding.cpp    # 常量折叠
-│   │   │       ├── dead_code_elimination.cpp # 死代码消除
-│   │   │       ├── common_subexpression.cpp # 公因子提取
-│   │   │       ├── loop_optimization.cpp    # 循环优化
-│   │   │       ├── inlining.cpp           # 内联展开
-│   │   │       └── ssa_construction.cpp    # SSA构造
+│   │   │       ├── constant_folding.c    # 常量折叠
+│   │   │       ├── dead_code_elimination.c # 死代码消除
+│   │   │       ├── common_subexpression.c # 公因子提取
+│   │   │       ├── loop_optimization.c    # 循环优化
+│   │   │       ├── inlining.c           # 内联展开
+│   │   │       └── ssa_construction.c    # SSA构造
 │   │   └── analysis/                 # 代码分析
 │   │       ├── analysis.h            # 分析基类
 │   │       ├── dominator_tree.cpp    # 支配树
@@ -100,30 +100,22 @@ modern-c-compiler/
 │   ├── backend/                      # 后端处理模块
 │   │   ├── codegen/                  # 代码生成器
 │   │   │   ├── codegen.h             # 代码生成器接口
-│   │   │   ├── codegen.cpp           # 代码生成器实现
-│   │   │   ├── target_machine.cpp    # 目标机器抽象
+│   │   │   ├── codegen.c           # 代码生成器实现
+│   │   │   ├── target_machine.c    # 目标机器抽象
 │   │   │   ├── target_machine.h      # 目标机器接口
-│   │   │   ├── instruction_selector.cpp # 指令选择器
-│   │   │   ├── riscv/                # RISC-V后端
-│   │   │   │   ├── riscv_backend.cpp # RISC-V后端实现
-│   │   │   │   ├── riscv_instructions.cpp # 指令定义
-│   │   │   │   └── riscv_assembler.cpp # 汇编器
-│   │   │   ├── x86/                  # x86后端
-│   │   │   │   ├── x86_backend.cpp   # x86后端实现
-│   │   │   │   ├── x86_instructions.cpp # 指令定义
-│   │   │   │   └── x86_assembler.cpp # 汇编器
-│   │   │   └── arm/                  # ARM后端
-│   │   │       ├── arm_backend.cpp   # ARM后端实现
-│   │   │       ├── arm_instructions.cpp # 指令定义
-│   │   │       └── arm_assembler.cpp # 汇编器
+│   │   │   ├── instruction_selector.c # 指令选择器
+│   │   │   └── x86/                  # x86后端
+│   │   │       ├── x86_backend.c   # x86后端实现
+│   │   │       ├── x86_instructions.c # 指令定义
+│   │   │       └── x86_assembler.c # 汇编器
 │   │   ├── registeralloc/            # 寄存器分配
 │   │   │   ├── register_alloc.h      # 寄存器分配器接口
-│   │   │   ├── register_alloc.cpp    # 通用分配器
-│   │   │   ├── liveness_analysis.cpp # 活跃变量分析
-│   │   │   ├── interference_graph.cpp # 冲突图
-│   │   │   ├── graph_coloring.cpp    # 图着色算法
-│   │   │   ├── linear_scan.cpp       # 线性扫描
-│   │   │   └── spill_strategy.cpp    # 溢出策略
+│   │   │   ├── register_alloc.c    # 通用分配器
+│   │   │   ├── liveness_analysis.c # 活跃变量分析
+│   │   │   ├── interference_graph.c # 冲突图
+│   │   │   ├── graph_coloring.c    # 图着色算法
+│   │   │   ├── linear_scan.c       # 线性扫描
+│   │   │   └── spill_strategy.c    # 溢出策略
 │   │   └── common/                   # 后端公共代码
 │   │       ├── instruction_selection.cpp # 指令选择公共代码
 │   │       ├── calling_convention.cpp   # 调用约定
@@ -132,43 +124,43 @@ modern-c-compiler/
 │   ├── common/                       # 公共组件
 │   │   ├── utils/                    # 工具函数
 │   │   │   ├── string_utils.h        # 字符串工具
-│   │   │   ├── string_utils.cpp      # 字符串工具实现
+│   │   │   ├── string_utils.c      # 字符串工具实现
 │   │   │   ├── hash_table.h          # 哈希表实现
-│   │   │   ├── hash_table.cpp        # 哈希表实现
+│   │   │   ├── hash_table.c        # 哈希表实现
 │   │   │   ├── memory_pool.h         # 内存池
-│   │   │   ├── memory_pool.cpp       # 内存池实现
+│   │   │   ├── memory_pool.c       # 内存池实现
 │   │   │   ├── container_utils.h     # 容器工具
-│   │   │   └── file_utils.cpp        # 文件工具
+│   │   │   └── file_utils.c        # 文件工具
 │   │   ├── containers/               # 数据结构
 │   │   │   ├── vector.h              # 向量容器
-│   │   │   ├── vector.cpp            # 向量实现
+│   │   │   ├── vector.c            # 向量实现
 │   │   │   ├── deque.h               # 双端队列
-│   │   │   ├── deque.cpp             # 双端队列实现
+│   │   │   ├── deque.c             # 双端队列实现
 │   │   │   ├── bst.h                 # 二叉搜索树
-│   │   │   ├── bst.cpp               # 二叉搜索树实现
+│   │   │   ├── bst.c               # 二叉搜索树实现
 │   │   │   ├── graph.h               # 图结构
-│   │   │   └── graph.cpp             # 图实现
+│   │   │   └── graph.c             # 图实现
 │   │   ├── io/                       # IO处理
 │   │   │   ├── file_reader.h         # 文件读取器
-│   │   │   ├── file_reader.cpp       # 文件读取器实现
+│   │   │   ├── file_reader.c       # 文件读取器实现
 │   │   │   ├── output_writer.h       # 输出写入器
-│   │   │   ├── output_writer.cpp     # 输出写入器实现
+│   │   │   ├── output_writer.c     # 输出写入器实现
 │   │   │   ├── buffer.h              # 缓冲区
-│   │   │   └── buffer.cpp            # 缓冲区实现
+│   │   │   └── buffer.c            # 缓冲区实现
 │   │   ├── diagnostics/              # 诊断系统
 │   │   │   ├── diagnostic_engine.h   # 诊断引擎
-│   │   │   ├── diagnostic_engine.cpp # 诊断引擎实现
+│   │   │   ├── diagnostic_engine.c # 诊断引擎实现
 │   │   │   ├── error_reporter.h      # 错误报告器
-│   │   │   ├── error_reporter.cpp    # 错误报告器实现
+│   │   │   ├── error_reporter.c    # 错误报告器实现
 │   │   │   ├── source_location.h     # 源码位置
-│   │   │   ├── source_location.cpp   # 源码位置实现
+│   │   │   ├── source_location.c   # 源码位置实现
 │   │   │   ├── diagnostic_consumer.h # 诊断消费者
-│   │   │   └── formatting.cpp        # 格式化工具
+│   │   │   └── formatting.c        # 格式化工具
 │   │   ├── config/                   # 配置管理
 │   │   │   ├── config.h              # 配置接口
-│   │   │   ├── config.cpp            # 配置实现
-│   │   │   ├── command_line.cpp      # 命令行解析
-│   │   │   └── target_config.cpp     # 目标配置
+│   │   │   ├── config.c            # 配置实现
+│   │   │   ├── command_line.c      # 命令行解析
+│   │   │   └── target_config.c     # 目标配置
 │   │   └── logging/                  # 日志系统
 │   │       ├── logger.h              # 日志器接口
 │   │       ├── logger.cpp            # 日志器实现
@@ -176,27 +168,27 @@ modern-c-compiler/
 │   │       └── log_formatter.cpp     # 日志格式化
 │   ├── type/                         # 类型系统
 │   │   ├── types.h                   # 类型系统基础定义
-│   │   ├── types.cpp                 # 类型系统实现
-│   │   ├── type_builder.cpp          # 类型构建器
-│   │   ├── type_comparison.cpp       # 类型比较
-│   │   ├── type_layout.cpp           # 类型布局计算
-│   │   ├── builtin_types.cpp         # 内建类型
-│   │   ├── array_type.cpp            # 数组类型
-│   │   ├── struct_type.cpp           # 结构体类型
-│   │   ├── union_type.cpp            # 联合体类型
-│   │   ├── function_type.cpp         # 函数类型
-│   │   ├── pointer_type.cpp          # 指针类型
-│   │   ├── atomic_type.cpp           # 原子类型(C11)
-│   │   └── aligned_type.cpp          # 对齐类型(C11)
+│   │   ├── types.c                 # 类型系统实现
+│   │   ├── type_builder.c          # 类型构建器
+│   │   ├── type_comparison.c       # 类型比较
+│   │   ├── type_layout.c           # 类型布局计算
+│   │   ├── builtin_types.c         # 内建类型
+│   │   ├── array_type.c            # 数组类型
+│   │   ├── struct_type.c           # 结构体类型
+│   │   ├── union_type.c            # 联合体类型
+│   │   ├── function_type.c         # 函数类型
+│   │   ├── pointer_type.c          # 指针类型
+│   │   ├── atomic_type.c           # 原子类型(C11)
+│   │   └── aligned_type.c          # 对齐类型(C11)
 │   ├── symbol/                       # 符号表管理
 │   │   ├── symbol_table.h            # 符号表接口
-│   │   ├── symbol_table.cpp          # 符号表实现
+│   │   ├── symbol_table.c          # 符号表实现
 │   │   ├── symbol.h                  # 符号定义
-│   │   ├── symbol.cpp                # 符号实现
+│   │   ├── symbol.c                # 符号实现
 │   │   ├── scope.h                   # 作用域定义
-│   │   ├── scope.cpp                 # 作用域实现
-│   │   ├── name_lookup.cpp           # 名称查找
-│   │   ├── symbol_visitor.cpp        # 符号访问者
+│   │   ├── scope.c                 # 作用域实现
+│   │   ├── name_lookup.c           # 名称查找
+│   │   ├── symbol_visitor.c        # 符号访问者
 
 ## 核心文件的功能描述
 
@@ -207,49 +199,59 @@ modern-c-compiler/
 **功能**: 提供编译器的公共接口，隐藏内部实现细节
 
 **主要内容**:
-```cpp
+```c
 // 编译器主接口
-namespace modern_c_compiler {
-    class Compiler {
-    public:
-        Compiler();
-        ~Compiler();
-        
-        // 编译选项设置
-        void setOptions(const CompileOptions& options);
-        CompileOptions getOptions() const;
-        
-        // 单文件编译
-        bool compileFile(const std::string& filename);
-        bool compileSource(const std::string& source, const std::string& filename);
-        
-        // 批量编译
-        bool compileFiles(const std::vector<std::string>& files);
-        
-        // 获取编译结果
-        CompileResult getResult() const;
-        bool hasErrors() const;
-        std::vector<Diagnostic> getDiagnostics() const;
-    };
+#ifndef PUBLIC_API_H
+#define PUBLIC_API_H
+
+#include <stdbool.h>
+#include <stddef.h>
+
+// 前向声明
+typedef struct Compiler Compiler;
+typedef struct CompileOptions CompileOptions;
+typedef struct CompileResult CompileResult;
+typedef struct Diagnostic Diagnostic;
+typedef struct VersionInfo VersionInfo;
+
+// 编译器接口
+typedef struct Compiler {
+    // 私有实现数据
+    void* privateData;
     
-    // 版本信息
-    struct VersionInfo {
-        int major;
-        int minor;
-        int patch;
-        std::string preRelease;
-        std::string build;
-    };
-    
-    VersionInfo getVersion();
-}
+    // 函数指针表
+    void (*setOptions)(Compiler* compiler, const CompileOptions* options);
+    void (*getOptions)(const Compiler* compiler, CompileOptions* options);
+    bool (*compileFile)(Compiler* compiler, const char* filename);
+    bool (*compileSource)(Compiler* compiler, const char* source, const char* filename);
+    bool (*compileFiles)(Compiler* compiler, const char** files, size_t count);
+    void (*getResult)(const Compiler* compiler, CompileResult* result);
+    bool (*hasErrors)(const Compiler* compiler);
+    void (*getDiagnostics)(const Compiler* compiler, struct Vector* diagnostics); // Diagnostic*
+} Compiler;
+
+// 版本信息
+struct VersionInfo {
+    int major;
+    int minor;
+    int patch;
+    char* preRelease;
+    char* build;
+};
+
+// 编译器构造函数和析构函数
+Compiler* createCompiler(void);
+void destroyCompiler(Compiler* compiler);
+
+// 版本信息获取
+VersionInfo getVersion(void);
 
 // 工具函数
-namespace modern_c_compiler::util {
-    bool validateSourceFile(const std::string& filename);
-    std::string getDefaultOutputFilename(const std::string& inputFile);
-    bool isValidTarget(const std::string& targetTriple);
-}
+bool validateSourceFile(const char* filename);
+char* getDefaultOutputFilename(const char* inputFile);
+bool isValidX86Target(const char* targetTriple);
+
+#endif // PUBLIC_API_H
 ```
 
 #### 诊断系统头文件 (`src/common/diagnostics/diagnostic_engine.h`)
@@ -257,44 +259,75 @@ namespace modern_c_compiler::util {
 **功能**: 提供统一的错误报告和诊断信息管理
 
 **接口定义**:
-```cpp
-namespace diagnostic {
-    class DiagnosticEngine {
-    public:
-        // 报告不同级别的诊断信息
-        void reportError(SourceLocation location, const std::string& message);
-        void reportWarning(SourceLocation location, const std::string& message);
-        void reportNote(SourceLocation location, const std::string& message);
-        void reportRemark(SourceLocation location, const std::string& message);
-        
-        // 格式化的错误消息
-        std::string formatDiagnostic(DiagnosticLevel level, 
-                                    const SourceLocation& location,
-                                    const std::string& message) const;
-        
-        // 诊断控制
-        void setErrorLimit(size_t limit);
-        void setWarningsAsErrors(bool enabled);
-        void enableAllWarnings();
-        void disableWarning(const std::string& warningId);
-        
-        // 查询诊断状态
-        bool hasErrors() const { return errorCount_ > 0; }
-        size_t getErrorCount() const { return errorCount_; }
-        size_t getWarningCount() const { return warningCount_; }
-    };
+```c
+// diagnostic_engine.h
+#ifndef DIAGNOSTIC_ENGINE_H
+#define DIAGNOSTIC_ENGINE_H
+
+#include <stdbool.h>
+#include <stddef.h>
+
+// 诊断级别
+typedef enum {
+    DIAG_ERROR,
+    DIAG_WARNING,
+    DIAG_NOTE,
+    DIAG_REMARK
+} DiagnosticLevel;
+
+// 源位置信息
+typedef struct {
+    char* filename;
+    size_t line;
+    size_t column;
+    size_t offset;
+} SourceLocation;
+
+// 诊断引擎
+typedef struct {
+    // 私有数据
+    void* privateData;
     
-    // 源位置信息
-    struct SourceLocation {
-        std::string filename;
-        size_t line;
-        size_t column;
-        size_t offset;
-        
-        bool isValid() const { return !filename.empty(); }
-        std::string toString() const;
-    };
-}
+    // 函数指针表
+    void (*reportError)(struct DiagnosticEngine* engine,
+                       SourceLocation location,
+                       const char* message);
+    void (*reportWarning)(struct DiagnosticEngine* engine,
+                         SourceLocation location,
+                         const char* message);
+    void (*reportNote)(struct DiagnosticEngine* engine,
+                      SourceLocation location,
+                      const char* message);
+    void (*reportRemark)(struct DiagnosticEngine* engine,
+                        SourceLocation location,
+                        const char* message);
+    
+    char* (*formatDiagnostic)(const struct DiagnosticEngine* engine,
+                             DiagnosticLevel level,
+                             const SourceLocation* location,
+                             const char* message);
+    
+    // 诊断控制
+    void (*setErrorLimit)(struct DiagnosticEngine* engine, size_t limit);
+    void (*setWarningsAsErrors)(struct DiagnosticEngine* engine, bool enabled);
+    void (*enableAllWarnings)(struct DiagnosticEngine* engine);
+    void (*disableWarning)(struct DiagnosticEngine* engine, const char* warningId);
+    
+    // 查询诊断状态
+    bool (*hasErrors)(const struct DiagnosticEngine* engine);
+    size_t (*getErrorCount)(const struct DiagnosticEngine* engine);
+    size_t (*getWarningCount)(const struct DiagnosticEngine* engine);
+} DiagnosticEngine;
+
+// 构造函数和析构函数
+DiagnosticEngine* createDiagnosticEngine(void);
+void destroyDiagnosticEngine(DiagnosticEngine* engine);
+
+// 便捷函数
+bool sourceLocationIsValid(const SourceLocation* location);
+char* sourceLocationToString(const SourceLocation* location);
+
+#endif // DIAGNOSTIC_ENGINE_H
 ```
 
 #### 符号表头文件 (`src/symbol/symbol_table.h`)
@@ -302,101 +335,157 @@ namespace diagnostic {
 **功能**: 管理符号的定义、查找和作用域
 
 **接口定义**:
-```cpp
-namespace symbol {
-    class Symbol {
-    public:
-        enum class Kind {
-            Variable, Function, Type, EnumConstant, Macro, Label
-        };
-        
-        // 符号属性
-        std::string name;
-        Kind kind;
-        ::type::Type* type = nullptr;
-        SourceLocation location;
-        
-        // 存储信息
-        bool isDefined = false;
-        bool isExtern = false;
-        bool isStatic = false;
-        bool isConst = false;
-        int storageSize = 0;
-        int alignment = 0;
-        
-        // 值信息
-        void* value = nullptr; // 用于常量值
-        std::vector<uint8_t> initialData; // 用于初始值
-        
-        // 辅助方法
-        bool isVariable() const { return kind == Kind::Variable; }
-        bool isFunction() const { return kind == Kind::Function; }
-        bool isType() const { return kind == Kind::Type; }
-    };
+```c
+// symbol_table.h
+#ifndef SYMBOL_TABLE_H
+#define SYMBOL_TABLE_H
+
+#include <stdbool.h>
+#include <stddef.h>
+
+// 前向声明
+typedef struct Type Type;
+typedef struct Symbol Symbol;
+typedef struct Scope Scope;
+typedef struct SymbolTable SymbolTable;
+
+// 符号类型
+typedef enum {
+    SYMBOL_VARIABLE,
+    SYMBOL_FUNCTION,
+    SYMBOL_TYPE,
+    SYMBOL_ENUM_CONSTANT,
+    SYMBOL_MACRO,
+    SYMBOL_LABEL
+} SymbolKind;
+
+// 符号结构
+struct Symbol {
+    // 符号属性
+    char* name;
+    SymbolKind kind;
+    Type* type;
+    SourceLocation location;
     
-    class SymbolTable {
-    public:
-        // 作用域管理
-        void enterScope();
-        void exitScope();
-        Scope* getCurrentScope() const;
-        Scope* getGlobalScope() const;
-        
-        // 符号管理
-        void addSymbol(std::unique_ptr<Symbol> symbol);
-        Symbol* lookup(const std::string& name);
-        Symbol* lookupInCurrentScope(const std::string& name);
-        Symbol* lookupRecursive(const std::string& name);
-        
-        // 工具方法
-        int getScopeLevel() const;
-        bool isInGlobalScope() const;
-        void dump(std::ostream& os) const;
-    };
-}
+    // 存储信息
+    bool isDefined;
+    bool isExtern;
+    bool isStatic;
+    bool isConst;
+    int storageSize;
+    int alignment;
+    
+    // 值信息
+    void* value; // 用于常量值
+    struct Vector* initialData; // uint8_t*
+    
+    // 引用计数
+    int refCount;
+    
+    // 私有数据
+    void* privateData;
+};
+
+// 符号表接口
+struct SymbolTable {
+    // 私有数据
+    void* privateData;
+    
+    // 函数指针表
+    void (*enterScope)(SymbolTable* table);
+    void (*exitScope)(SymbolTable* table);
+    Scope* (*getCurrentScope)(const SymbolTable* table);
+    Scope* (*getGlobalScope)(const SymbolTable* table);
+    
+    // 符号管理
+    bool (*addSymbol)(SymbolTable* table, Symbol* symbol);
+    Symbol* (*lookup)(const SymbolTable* table, const char* name);
+    Symbol* (*lookupInCurrentScope)(const SymbolTable* table, const char* name);
+    Symbol* (*lookupRecursive)(const SymbolTable* table, const char* name);
+    
+    // 工具方法
+    int (*getScopeLevel)(const SymbolTable* table);
+    bool (*isInGlobalScope)(const SymbolTable* table);
+    void (*dump)(const SymbolTable* table, FILE* os);
+};
+
+// 构造函数和析构函数
+SymbolTable* createSymbolTable(void);
+void destroySymbolTable(SymbolTable* table);
+
+// 符号构造函数
+Symbol* createSymbol(const char* name, SymbolKind kind, SourceLocation location);
+void destroySymbol(Symbol* symbol);
+
+// 符号辅助方法
+bool symbolIsVariable(const Symbol* symbol);
+bool symbolIsFunction(const Symbol* symbol);
+bool symbolIsType(const Symbol* symbol);
+
+#endif // SYMBOL_TABLE_H
 ```
 
 ### 关键源文件的职责和实现要点
 
-#### 词法分析器实现 (`src/frontend/lexer/lexer.cpp`)
+#### 词法分析器实现 (`src/frontend/lexer/lexer.c`)
 
 **职责**: 将字符流转换为token流
 
 **实现要点**:
-```cpp
-namespace lexer {
-    class Lexer {
-    private:
-        std::string source_;
-        size_t position_ = 0;
-        size_t line_ = 1;
-        size_t column_ = 1;
-        SourceLocation currentLocation_;
-        DiagnosticEngine* diagnostics_ = nullptr;
-        
-        // 关键字表
-        static const std::unordered_map<std::string, Token::Kind> keywords_;
-        
-        // 私有方法
-        char peekChar();
-        char getChar();
-        void skipWhitespace();
-        Token readStringLiteral();
-        Token readNumberLiteral();
-        Token readIdentifier();
-        Token readOperator();
-        
-        // 错误处理
-        void reportError(const std::string& message);
-        void reportUnexpectedCharacter(char c);
-        
-    public:
-        Lexer(const std::string& source, DiagnosticEngine* diagnostics = nullptr);
-        std::vector<Token> tokenize();
-        Token nextToken();
-        bool hasMoreTokens() const;
-    };
-}
+```c
+// lexer.h
+#ifndef LEXER_H
+#define LEXER_H
+
+#include <stdbool.h>
+#include <stddef.h>
+
+// 前向声明
+typedef struct Token Token;
+typedef struct DiagnosticEngine DiagnosticEngine;
+typedef struct SourceLocation SourceLocation;
+typedef struct HashTable HashTable;
+typedef struct Vector Vector;
+
+// 词法分析器结构体
+typedef struct {
+    char* source;
+    size_t position;
+    size_t line;
+    size_t column;
+    SourceLocation currentLocation;
+    DiagnosticEngine* diagnostics;
+    
+    // 关键字表
+    HashTable* keywords;
+    
+    // 私有数据
+    void* privateData;
+} Lexer;
+
+// 构造函数和析构函数
+Lexer* createLexer(const char* source, DiagnosticEngine* diagnostics);
+void destroyLexer(Lexer* lexer);
+
+// 主要接口
+Vector* lexerTokenize(Lexer* lexer);  // Vector<Token>*
+Token lexerNextToken(Lexer* lexer);
+bool lexerHasMoreTokens(const Lexer* lexer);
+
+// 私有方法（在实现文件中）
+static char lexerPeekChar(Lexer* lexer);
+static char lexerGetChar(Lexer* lexer);
+static void lexerSkipWhitespace(Lexer* lexer);
+static Token lexerReadStringLiteral(Lexer* lexer);
+static Token lexerReadNumberLiteral(Lexer* lexer);
+static Token lexerReadIdentifier(Lexer* lexer);
+static Token lexerReadOperator(Lexer* lexer);
+
+// 错误处理
+static void lexerReportError(Lexer* lexer, const char* message);
+static void lexerReportUnexpectedCharacter(Lexer* lexer, char c);
+
+#endif // LEXER_H
 ```
 
 **关键特性**:
@@ -405,67 +494,120 @@ namespace lexer {
 - 行号和列号跟踪
 - 高效的状态机实现
 
-#### IR构建器实现 (`src/midend/ir/ir_builder.cpp`)
+#### IR构建器实现 (`src/midend/ir/ir_builder.c`)
 
 **职责**: 从AST生成中间表示
 
 **实现要点**:
-```cpp
-namespace ir {
-    class IRBuilder {
-    private:
-        Module* currentModule_ = nullptr;
-        Function* currentFunction_ = nullptr;
-        BasicBlock* currentBlock_ = nullptr;
-        std::map<ast::ASTNode*, Value*> valueMap_;
-        
-        // 类型辅助方法
-        Type* convertType(::type::Type* type);
-        
-        // 值创建方法
-        Value* createConstant(Type* type, void* value);
-        Instruction* createBinaryOp(BinaryOperator::Operator op, Value* lhs, Value* rhs);
-        Instruction* createLoad(Type* type, Value* ptr);
-        Instruction* createStore(Value* ptr, Value* value);
-        
-    public:
-        explicit IRBuilder(Module* module);
-        
-        // 主要转换方法
-        Value* convertExpression(ast::Expression* expr);
-        void convertStatement(ast::Statement* stmt);
-        void convertDeclaration(ast::Declaration* decl);
-        
-        // 辅助方法
-        void setInsertPoint(BasicBlock* block);
-        BasicBlock* createBasicBlock(const std::string& name);
-        Value* getValue(ast::ASTNode* node);
-        void setValue(ast::ASTNode* node, Value* value);
-    };
-}
+```c
+// ir_builder.h
+#ifndef IR_BUILDER_H
+#define IR_BUILDER_H
+
+#include <stdbool.h>
+#include <stddef.h>
+
+// 前向声明
+typedef struct Module Module;
+typedef struct Function Function;
+typedef struct BasicBlock BasicBlock;
+typedef struct Value Value;
+typedef struct Type Type;
+typedef struct Instruction Instruction;
+typedef struct ASTNode ASTNode;
+typedef struct HashTable HashTable;
+
+// IR构建器结构体
+typedef struct {
+    Module* currentModule;
+    Function* currentFunction;
+    BasicBlock* currentBlock;
+    HashTable* valueMap;  // ASTNode* -> Value*
+    
+    // 私有数据
+    void* privateData;
+} IRBuilder;
+
+// 构造函数和析构函数
+IRBuilder* createIRBuilder(Module* module);
+void destroyIRBuilder(IRBuilder* builder);
+
+// 主要转换方法
+Value* irBuilderConvertExpression(IRBuilder* builder, ASTNode* expr);
+void irBuilderConvertStatement(IRBuilder* builder, ASTNode* stmt);
+void irBuilderConvertDeclaration(IRBuilder* builder, ASTNode* decl);
+
+// 类型辅助方法
+Type* irBuilderConvertType(IRBuilder* builder, Type* type);
+
+// 值创建方法
+Value* irBuilderCreateConstant(IRBuilder* builder, Type* type, void* value);
+Instruction* irBuilderCreateBinaryOp(IRBuilder* builder, int op, Value* lhs, Value* rhs);
+Instruction* irBuilderCreateLoad(IRBuilder* builder, Type* type, Value* ptr);
+Instruction* irBuilderCreateStore(IRBuilder* builder, Value* ptr, Value* value);
+
+// 辅助方法
+void irBuilderSetInsertPoint(IRBuilder* builder, BasicBlock* block);
+BasicBlock* irBuilderCreateBasicBlock(IRBuilder* builder, const char* name);
+Value* irBuilderGetValue(IRBuilder* builder, ASTNode* node);
+void irBuilderSetValue(IRBuilder* builder, ASTNode* node, Value* value);
+
+#endif // IR_BUILDER_H
 ```
 
-#### 代码生成器实现 (`src/backend/codegen/codegen.cpp`)
+#### 代码生成器实现 (`src/backend/codegen/codegen.c`)
 
 **职责**: 将IR转换为目标代码
 
 **实现要点**:
-```cpp
-namespace backend {
-    class CodeGenerator {
-    private:
-        TargetMachine* targetMachine_;
-        std::unique_ptr<RegisterAllocator> regAllocator_;
-        std::unique_ptr<InstructionSelector> instSelector_;
-        
-        // 代码生成辅助方法
-        void emitPrologue(Function* func);
-        void emitEpilogue(Function* func);
-        void emitFunctionCall(CallInstruction* call);
-        void emitBasicBlock(BasicBlock* block);
-        
-        // 寄存器分配
-        void allocateRegisters(Function* func);
+```c
+// codegen.h
+#ifndef CODEGEN_H
+#define CODEGEN_H
+
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdio.h>
+
+// 前向声明
+typedef struct TargetMachine TargetMachine;
+typedef struct RegisterAllocator RegisterAllocator;
+typedef struct InstructionSelector InstructionSelector;
+typedef struct Function Function;
+typedef struct BasicBlock BasicBlock;
+typedef struct CallInstruction CallInstruction;
+
+// 代码生成器结构体
+typedef struct {
+    // 目标机器和组件
+    TargetMachine* targetMachine;
+    RegisterAllocator* regAllocator;
+    InstructionSelector* instSelector;
+    
+    // 输出流
+    FILE* output;
+    
+    // 私有数据
+    void* privateData;
+} CodeGenerator;
+
+// 构造函数和析构函数
+CodeGenerator* createCodeGenerator(TargetMachine* targetMachine,
+                                 RegisterAllocator* regAllocator,
+                                 InstructionSelector* instSelector);
+void destroyCodeGenerator(CodeGenerator* codegen);
+
+// 代码生成辅助方法
+void codegenEmitPrologue(CodeGenerator* codegen, Function* func);
+void codegenEmitEpilogue(CodeGenerator* codegen, Function* func);
+void codegenEmitFunctionCall(CodeGenerator* codegen, CallInstruction* call);
+void codegenEmitBasicBlock(CodeGenerator* codegen, BasicBlock* block);
+
+// 寄存器分配
+void codegenAllocateRegisters(CodeGenerator* codegen, Function* func);
+
+#endif // CODEGEN_H
+```
         
 
 ## 模块组织策略
@@ -527,106 +669,222 @@ midend/
 
 #### 优化Pass分类
 
-```cpp
-namespace optimization {
-    // 优化Pass基类
-    class Pass {
-    public:
-        enum class Kind {
-            ModulePass,      // 模块级优化
-            FunctionPass,    // 函数级优化
-            BasicBlockPass,  # 基本块级优化
-            InstructionPass  # 指令级优化
-        };
-        
-        virtual ~Pass() = default;
-        virtual Kind getKind() const = 0;
-        virtual std::string getName() const = 0;
-        virtual bool isRequired() const { return false; }
-    };
+```c
+// optimization_pass.h
+#ifndef OPTIMIZATION_PASS_H
+#define OPTIMIZATION_PASS_H
+
+#include <stdbool.h>
+#include <stddef.h>
+
+// 前向声明
+typedef struct Module Module;
+typedef struct Function Function;
+typedef struct BasicBlock BasicBlock;
+typedef struct Instruction Instruction;
+
+// Pass类型枚举
+typedef enum {
+    PASS_MODULE,        // 模块级优化
+    PASS_FUNCTION,      // 函数级优化
+    PASS_BASIC_BLOCK,   // 基本块级优化
+    PASS_INSTRUCTION    // 指令级优化
+} PassKind;
+
+// Pass基类（使用函数指针实现多态）
+typedef struct {
+    PassKind kind;
+    char* name;
+    bool isRequired;
     
-    // 具体Pass示例
-    class ConstantFoldingPass : public Pass {
-        // 常量折叠优化
-    };
+    // 函数指针表
+    bool (*runOnModule)(struct Pass* self, Module* module);
+    bool (*runOnFunction)(struct Pass* self, Function* func);
+    bool (*runOnBasicBlock)(struct Pass* self, BasicBlock* block);
+    bool (*runOnInstruction)(struct Pass* self, Instruction* inst);
     
-    class DeadCodeEliminationPass : public Pass {
-        // 死代码消除
-    };
+    // 销毁函数
+    void (*destroy)(struct Pass* self);
     
-    class LoopOptimizationPass : public Pass {
-        // 循环优化
-    };
-}
+    // 私有数据
+    void* privateData;
+} Pass;
+
+// 具体Pass示例
+
+// 常量折叠Pass
+typedef struct {
+    Pass base;
+    // 私有数据
+    size_t constantsFolded;
+} ConstantFoldingPass;
+
+// 死代码消除Pass
+typedef struct {
+    Pass base;
+    // 私有数据
+    size_t instructionsRemoved;
+    size_t basicBlocksRemoved;
+} DeadCodeEliminationPass;
+
+// 循环优化Pass
+typedef struct {
+    Pass base;
+    // 私有数据
+    size_t loopsOptimized;
+} LoopOptimizationPass;
+
+// 构造函数
+Pass* createConstantFoldingPass(void);
+Pass* createDeadCodeEliminationPass(void);
+Pass* createLoopOptimizationPass(void);
+
+#endif // OPTIMIZATION_PASS_H
 ```
 
 #### 优化器管理器
 
-```cpp
-namespace optimization {
-    class PassManager {
-    private:
-        std::vector<std::unique_ptr<Pass>> passes_;
-        AnalysisManager analysisManager_;
-        
-    public:
-        template<typename PassType, typename... Args>
-        void addPass(Args&&... args) {
-            static_assert(std::is_base_of<Pass, PassType>::value,
-                         "PassType must derive from Pass");
-            passes_.push_back(std::make_unique<PassType>(std::forward<Args>(args)...));
-        }
-        
-        bool run(ir::Module& module);
-        bool run(ir::Function& function);
-    };
-}
+```c
+// pass_manager.h
+#ifndef PASS_MANAGER_H
+#define PASS_MANAGER_H
+
+#include <stdbool.h>
+#include <stddef.h>
+
+// 前向声明
+typedef struct Pass Pass;
+typedef struct Module Module;
+typedef struct Function Function;
+typedef struct Vector Vector;
+
+// Pass管理器结构体
+typedef struct {
+    Vector* passes;  // Pass*
+    
+    // 统计信息
+    struct {
+        size_t totalRuns;
+        size_t successfulRuns;
+        size_t failedRuns;
+    } statistics;
+    
+    // 私有数据
+    void* privateData;
+} PassManager;
+
+// 构造函数和析构函数
+PassManager* createPassManager(void);
+void destroyPassManager(PassManager* manager);
+
+// Pass管理器操作
+bool passManagerAddPass(PassManager* manager, Pass* pass);
+bool passManagerRun(PassManager* manager, Module* module);
+bool passManagerRunOnFunction(PassManager* manager, Function* function);
+
+// 统计信息
+size_t passManagerGetTotalRuns(const PassManager* manager);
+size_t passManagerGetSuccessfulRuns(const PassManager* manager);
+size_t passManagerGetFailedRuns(const PassManager* manager);
+
+#endif // PASS_MANAGER_H
 ```
 
 ### 后端代码生成模块的文件组织方式
 
-#### 目标无关架构
+#### x86专用架构
 
 ```
 backend/
 ├── codegen/            # 代码生成器
 ├── registeralloc/      # 寄存器分配
 ├── common/            # 公共后端代码
-├── riscv/             # RISC-V目标
-├── x86/               # x86目标
-└── arm/               # ARM目标
+└── x86/               # x86目标
 ```
 
 #### 目标机器抽象
 
-```cpp
-namespace target {
-    class TargetMachine {
-    public:
-        virtual ~TargetMachine() = default;
-        
-        // 目标信息
-        virtual std::string getTriple() const = 0;
-        virtual const RegisterInfo& getRegisterInfo() const = 0;
-        virtual const InstructionInfo& getInstructionInfo() const = 0;
-        
-        // 数据布局
-        virtual const DataLayout& getDataLayout() const = 0;
-        
-        // 代码生成
-        virtual bool emitFunction(ir::Function& func, std::ostream& output) = 0;
-        virtual bool emitModule(ir::Module& module, std::ostream& output) = 0;
-    };
+```c
+// target_machine.h
+#ifndef TARGET_MACHINE_H
+#define TARGET_MACHINE_H
+
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdio.h>
+
+// 前向声明
+typedef struct RegisterInfo RegisterInfo;
+typedef struct InstructionInfo InstructionInfo;
+typedef struct DataLayout DataLayout;
+typedef struct Function Function;
+typedef struct Module Module;
+
+// 目标机器函数指针表
+typedef struct {
+    // 销毁函数
+    void (*destroy)(struct TargetMachine* self);
     
-    // 具体目标实现
-    class RISCVTargetMachine : public TargetMachine {
-        // RISC-V特定实现
-    };
+    // 目标信息
+    const char* (*getTriple)(const struct TargetMachine* self);
+    const RegisterInfo* (*getRegisterInfo)(const struct TargetMachine* self);
+    const InstructionInfo* (*getInstructionInfo)(const struct TargetMachine* self);
     
-    class X86TargetMachine : public TargetMachine {
-        // x86特定实现
-    };
+    // 数据布局
+    const DataLayout* (*getDataLayout)(const struct TargetMachine* self);
+    
+    // 代码生成
+    bool (*emitFunction)(struct TargetMachine* self, Function* func, FILE* output);
+    bool (*emitModule)(struct TargetMachine* self, Module* module, FILE* output);
+} TargetMachineVTable;
+
+// 目标机器基类
+typedef struct {
+    const TargetMachineVTable* vtable;
+    void* privateData;
+} TargetMachine;
+
+// 具体目标实现
+typedef struct {
+    TargetMachine base;
+    // x86特定数据
+    struct {
+        bool hasSSE2;
+        bool hasAVX;
+        bool hasAVX2;
+        char* cpuModel;
+    } x86Info;
+} X86TargetMachine;
+
+// 构造函数
+TargetMachine* createX86TargetMachine(void);
+
+// 目标机器操作（通过函数指针表调用）
+static inline const char* targetMachineGetTriple(const TargetMachine* machine) {
+    return machine->vtable->getTriple(machine);
 }
+
+static inline const RegisterInfo* targetMachineGetRegisterInfo(const TargetMachine* machine) {
+    return machine->vtable->getRegisterInfo(machine);
+}
+
+static inline const InstructionInfo* targetMachineGetInstructionInfo(const TargetMachine* machine) {
+    return machine->vtable->getInstructionInfo(machine);
+}
+
+static inline const DataLayout* targetMachineGetDataLayout(const TargetMachine* machine) {
+    return machine->vtable->getDataLayout(machine);
+}
+
+static inline bool targetMachineEmitFunction(TargetMachine* machine, Function* func, FILE* output) {
+    return machine->vtable->emitFunction(machine, func, output);
+}
+
+static inline bool targetMachineEmitModule(TargetMachine* machine, Module* module, FILE* output) {
+    return machine->vtable->emitModule(machine, module, output);
+}
+
+#endif // TARGET_MACHINE_H
 ```
 
 #### 指令选择器
@@ -940,7 +1198,6 @@ namespace system {
     class SystemInfo {
     public:
         static bool hasAVXSupport() {
-#ifdef __x86_64__
             // 检查AVX指令集支持
             unsigned int eax, ebx, ecx, edx;
             __asm__ __volatile__(
@@ -949,9 +1206,6 @@ namespace system {
                 : "a"(1)
             );
             return (ecx & (1 << 28)) != 0;
-#else
-            return false;
-#endif
         }
         
         static size_t getCPUCount() {
@@ -1053,10 +1307,8 @@ graph TD
 ### 1. 通用命名约定
 
 **文件扩展名**:
-- `.h` - C++头文件
-- `.cpp` - C++源文件
-- `.cc` - C++源文件(替代用法)
-- `.c` - C源文件(极少使用)
+- `.h` - C头文件
+- `.c` - C源文件
 - `.md` - Markdown文档
 - `.txt` - 文本文件
 - `.xml` - XML配置文件
@@ -1102,46 +1354,46 @@ config.h           // 配置管理
 
 ### 3. 源文件命名
 
-**格式**: `module_name.cpp`
+**格式**: `module_name.c`
 
 **对应关系**:
-```cpp
+```c
 // 头文件和源文件对应
-include/modern-c-compiler/lexer.h     ↔ src/frontend/lexer/lexer.cpp
-include/modern-c-compiler/parser.h    ↔ src/frontend/parser/parser.cpp
-include/modern-c-compiler/ast.h       ↔ src/frontend/ast/ast.cpp
-include/modern-c-compiler/ir.h        ↔ src/midend/ir/ir.cpp
-include/modern-c-compiler/optimizer.h ↔ src/midend/optimizer/optimizer.cpp
-include/modern-c-compiler/codegen.h   ↔ src/backend/codegen/codegen.cpp
+include/modern-c-compiler/lexer.h     ↔ src/frontend/lexer/lexer.c
+include/modern-c-compiler/parser.h    ↔ src/frontend/parser/parser.c
+include/modern-c-compiler/ast.h       ↔ src/frontend/ast/ast.c
+include/modern-c-compiler/ir.h        ↔ src/midend/ir/ir.c
+include/modern-c-compiler/optimizer.h ↔ src/midend/optimizer/optimizer.c
+include/modern-c-compiler/codegen.h   ↔ src/backend/codegen/codegen.c
 ```
 
 ### 4. 测试文件命名
 
-**格式**: `module_name_tests.cpp`
+**格式**: `module_name_tests.c`
 
 **示例**:
-```cpp
+```c
 // 单元测试
-lexer_tests.cpp
-parser_tests.cpp
-ast_tests.cpp
-semantic_tests.cpp
-ir_tests.cpp
-optimizer_tests.cpp
-codegen_tests.cpp
-type_tests.cpp
-symbol_tests.cpp
+lexer_tests.c
+parser_tests.c
+ast_tests.c
+semantic_tests.c
+ir_tests.c
+optimizer_tests.c
+codegen_tests.c
+type_tests.c
+symbol_tests.c
 
 // 集成测试
-frontend_integration_tests.cpp
-backend_integration_tests.cpp
-end_to_end_tests.cpp
-pipeline_tests.cpp
+frontend_integration_tests.c
+backend_integration_tests.c
+end_to_end_tests.c
+pipeline_tests.c
 
 // 性能测试
-compiler_performance_tests.cpp
-optimizer_performance_tests.cpp
-codegen_performance_tests.cpp
+compiler_performance_tests.c
+optimizer_performance_tests.c
+codegen_performance_tests.c
 ```
 
 ### 5. 配置文件命名
@@ -1179,53 +1431,42 @@ cmake/                   # CMake模块目录
 - 使用静态分析工具
 
 **示例代码风格**:
-```cpp
+```c
 // 头文件示例
 #ifndef MODERN_C_COMPILER_EXAMPLE_H
 #define MODERN_C_COMPILER_EXAMPLE_H
 
-#include <memory>
-#include <vector>
-#include <string>
-
-namespace modern_c_compiler {
-namespace example {
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdio.h>
 
 //! @brief 简明的功能描述
 //! @details 详细的功能描述，包括使用场景和注意事项
-class ExampleClass {
-public:
-    ExampleClass();
-    explicit ExampleClass(const std::string& name);
-    ~ExampleClass() = default;
+typedef struct ExampleClass {
+    char* name;
+    int* data;
+    size_t data_size;
     
-    // 拷贝和移动操作
-    ExampleClass(const ExampleClass&) = delete;
-    ExampleClass& operator=(const ExampleClass&) = delete;
-    ExampleClass(ExampleClass&&) noexcept;
-    ExampleClass& operator=(ExampleClass&&) noexcept;
-    
-    // 公共接口
-    void doSomething();
-    int calculate(int x, int y) const;
-    std::string getName() const { return name_; }
-    
-    // 静态方法
-    static std::unique_ptr<ExampleClass> create(const std::string& name);
-    
-private:
-    std::string name_;
-    std::vector<int> data_;
-};
+    // 私有数据
+    void* private_data;
+} ExampleClass;
 
 //! @brief 工具函数描述
 //! @param input 输入参数描述
 //! @return 返回值描述
-//! @throws std::invalid_argument 当输入无效时
-int processInput(const std::string& input);
+int processInput(const char* input);
 
-} // namespace example
-} // namespace modern_c_compiler
+// 构造函数和析构函数
+ExampleClass* createExampleClass(const char* name);
+void destroyExampleClass(ExampleClass* example);
+
+// 公共接口
+void exampleClassDoSomething(ExampleClass* example);
+int exampleClassCalculate(ExampleClass* example, int x, int y);
+const char* exampleClassGetName(const ExampleClass* example);
+
+// 静态方法
+ExampleClass* exampleClassCreate(const char* name);
 
 #endif // MODERN_C_COMPILER_EXAMPLE_H
 ```
@@ -1513,7 +1754,7 @@ TEST(CompilerPerformance, LargeFileProcessing) {
 
 - **模块化设计**: 每个模块职责明确，依赖关系清晰
 - **分层架构**: 前端、中端、后端的清晰分离
-- **可扩展性**: 支持插件系统和新的目标平台
+- **可扩展性**: 支持插件系统和x86特性扩展
 - **标准化**: 统一的命名、编码和文档规范
 - **测试驱动**: 完整的测试策略和性能基准
 
@@ -1542,9 +1783,9 @@ private:
 };
 
 // 使用
-auto target = std::make_unique<RISCVTargetMachine>();
+auto target = std::make_unique<X86TargetMachine>();
 auto diagnostics = std::make_unique<DiagnosticEngine>();
-auto optimizer = std::make_unique<Optimizer>(std::move(target), 
+auto optimizer = std::make_unique<Optimizer>(std::move(target),
                                             std::move(diagnostics));
 ```
 
@@ -2009,10 +2250,10 @@ endif()
 ```cpp
 namespace config {
     struct CompilerConfig {
-        // 目标配置
-        std::string targetTriple;
-        std::string cpu;
-        std::vector<std::string> features;
+        // x86目标配置
+        std::string targetTriple = "x86_64-pc-linux-gnu";
+        std::string cpu = "x86-64";
+        std::vector<std::string> features = {"sse2", "sse4.1", "avx"};
         
         // 优化配置
         OptimizationLevel optimizationLevel = OptimizationLevel::O2;

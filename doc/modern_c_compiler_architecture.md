@@ -23,9 +23,9 @@
 
 ### 技术栈
 - 目标语言：C99/C11/C17
-- 实现语言：C++17
+- 实现语言：纯C语言（C99/C11标准）
 - 构建系统：CMake
-- 测试框架：Google Test
+- 测试框架：自定义C语言测试框架
 - 文档系统：Sphinx/Doxygen
 
 ## 整体架构设计
@@ -96,18 +96,18 @@ modern-c-compiler/
 │   ├── frontend/                 # 前端模块
 │   │   ├── lexer/               # 词法分析器
 │   │   │   ├── lexer.h
-│   │   │   ├── lexer.cpp
+│   │   │   ├── lexer.c
 │   │   │   ├── token.h
-│   │   │   └── tokenizer.cpp
+│   │   │   └── tokenizer.c
 │   │   ├── parser/              # 语法分析器
 │   │   │   ├── parser.h
-│   │   │   ├── parser.cpp
+│   │   │   ├── parser.c
 │   │   │   ├── grammar.h
-│   │   │   └── error_recovery.cpp
+│   │   │   └── error_recovery.c
 │   │   ├── ast/                 # 抽象语法树
 │   │   │   ├── ast.h
 │   │   │   ├── ast_nodes.h
-│   │   │   ├── ast_builder.cpp
+│   │   │   ├── ast_builder.c
 │   │   │   └── ast_visitor.h
 │   │   └── semanticanalyzer/     # 语义分析器
 │   │       ├── semanticanalyzer.h
@@ -116,7 +116,7 @@ modern-c-compiler/
 │   ├── midend/                  # 中端模块
 │   │   ├── ir/                  # 中间表示
 │   │   │   ├── ir.h
-│   │   │   ├── ir_builder.cpp
+│   │   │   ├── ir_builder.c
 │   │   │   └── ir_instruction.h
 │   │   └── optimizer/           # 优化器
 │   │       ├── optimizer.h
@@ -127,12 +127,12 @@ modern-c-compiler/
 │   ├── backend/                 # 后端模块
 │   │   ├── codegen/             # 代码生成器
 │   │   │   ├── codegen.h
-│   │   │   ├── target_machine.cpp
+│   │   │   ├── target_machine.c
 │   │   │   └── riscv/           # RISC-V后端
 │   │   ├── registeralloc/       # 寄存器分配
 │   │   │   ├── register_alloc.h
-│   │   │   ├── liveness_analysis.cpp
-│   │   │   └── graph_coloring.cpp
+│   │   │   ├── liveness_analysis.c
+│   │   │   └── graph_coloring.c
 │   │   └── common/              # 后端公共代码
 │   │       ├── instruction_selection.cpp
 │   │       └── calling_convention.cpp
@@ -153,19 +153,19 @@ modern-c-compiler/
 │   │       └── source_location.h
 │   ├── type/                    # 类型系统
 │   │   ├── types.h
-│   │   ├── type_builder.cpp
-│   │   ├── type_comparison.cpp
-│   │   └── builtin_types.cpp
+│   │   ├── type_builder.c
+│   │   ├── type_comparison.c
+│   │   └── builtin_types.c
 │   ├── symbol/                  # 符号表
 │   │   ├── symbol_table.h
 │   │   ├── symbol.h
 │   │   ├── scope.h
-│   │   └── name_lookup.cpp
+│   │   └── name_lookup.c
 │   ├── codegen/                 # 代码生成
 │   │   ├── debug_info/          # 调试信息
 │   │   │   ├── debug_info.h
-│   │   │   ├── dwarf_generator.cpp
-│   │   │   └── line_info.cpp
+│   │   │   ├── dwarf_generator.c
+│   │   │   └── line_info.c
 │   │   └── elf/                 # ELF文件生成
 │   │       ├── elf_builder.cpp
 │   │       └── section_manager.cpp
@@ -223,29 +223,29 @@ modern-c-compiler/
 
 ```mermaid
 classDiagram
-    class ASTNode {
+    struct ASTNode {
         +SourceLocation location
         +ASTNode* parent
-        +virtual void accept(ASTVisitor& visitor)
-        +virtual void dump(std::ostream& os) const
+        +void (*accept)(ASTNode* self, ASTVisitor* visitor)
+        +void (*dump)(const ASTNode* self, FILE* os)
     }
     
-    class Expression {
-        +virtual Type* getType() const
-        +virtual bool isLvalue() const
-        +virtual bool isConstant() const
+    struct Expression {
+        +Type* (*getType)(const Expression* self)
+        +bool (*isLvalue)(const Expression* self)
+        +bool (*isConstant)(const Expression* self)
     }
     
-    class Statement {
-        +virtual bool isFallthrough() const
+    struct Statement {
+        +bool (*isFallthrough)(const Statement* self)
     }
     
-    class Declaration {
-        +virtual Symbol* getSymbol() const
+    struct Declaration {
+        +Symbol* (*getSymbol)(const Declaration* self)
     }
     
-    class TypeSpecifier {
-        +virtual Type* buildType() const
+    struct TypeSpecifier {
+        +Type* (*buildType)(const TypeSpecifier* self)
     }
     
     ASTNode <|-- Expression
@@ -290,104 +290,120 @@ classDiagram
 
 #### AST节点实现
 
-```cpp
+```c
 // ast.h
-namespace ast {
-    // 基础AST节点
-    class ASTNode {
-    public:
-        SourceLocation location;
-        ASTNode* parent = nullptr;
-        
-        virtual ~ASTNode() = default;
-        virtual void accept(ASTVisitor& visitor) = 0;
-        virtual void dump(std::ostream& os) const = 0;
-    };
+#ifndef AST_H
+#define AST_H
+
+#include <stdbool.h>
+#include <stddef.h>
+
+// 前向声明
+typedef struct Type Type;
+typedef struct Symbol Symbol;
+typedef struct ASTVisitor ASTVisitor;
+
+// AST节点类型枚举
+typedef enum {
+    AST_NODE_EXPRESSION,
+    AST_NODE_STATEMENT,
+    AST_NODE_DECLARATION,
+    AST_NODE_TYPE_SPECIFIER
+} ASTNodeType;
+
+// 基础AST节点结构
+typedef struct ASTNode {
+    SourceLocation location;
+    struct ASTNode* parent;
+    ASTNodeType type;
     
-    // 表达式基类
-    class Expression : public ASTNode {
-    public:
-        virtual ::type::Type* getType() const = 0;
-        virtual bool isLvalue() const = 0;
-        virtual bool isConstant() const = 0;
-    };
+    // 虚函数表（函数指针）
+    void (*accept)(struct ASTNode* self, ASTVisitor* visitor);
+    void (*dump)(const struct ASTNode* self, FILE* os);
+    void (*destroy)(struct ASTNode* self);
+} ASTNode;
+
+// 表达式结构体
+typedef struct Expression {
+    ASTNode base;
     
-    // 语句基类
-    class Statement : public ASTNode {
-    public:
-        virtual bool isFallthrough() const = 0;
-    };
+    // 表达式函数指针
+    Type* (*getType)(const struct Expression* self);
+    bool (*isLvalue)(const struct Expression* self);
+    bool (*isConstant)(const struct Expression* self);
+} Expression;
+
+// 语句结构体
+typedef struct Statement {
+    ASTNode base;
     
-    // 声明基类
-    class Declaration : public ASTNode {
-    public:
-        virtual ::symbol::Symbol* getSymbol() const = 0;
-    };
+    // 语句函数指针
+    bool (*isFallthrough)(const struct Statement* self);
+} Statement;
+
+// 声明结构体
+typedef struct Declaration {
+    ASTNode base;
     
-    // 复合语句
-    class CompoundStatement : public Statement {
-    public:
-        std::vector<std::unique_ptr<Statement>> statements;
-        std::vector<std::unique_ptr<Declaration>> declarations;
-        
-        void accept(ASTVisitor& visitor) override;
-        void dump(std::ostream& os) const override;
-        bool isFallthrough() const override { return true; }
-    };
+    // 声明函数指针
+    Symbol* (*getSymbol)(const struct Declaration* self);
+} Declaration;
+
+// 复合语句
+typedef struct CompoundStatement {
+    Statement base;
     
-    // 二元运算符
-    class BinaryOperator : public Expression {
-    public:
-        enum class Operator {
-            Add, Sub, Mul, Div, Mod,    // 算术
-            Eq, Ne, Lt, Le, Gt, Ge,     // 关系
-            And, Or,                     // 逻辑
-            Assign, AddAssign, SubAssign, // 赋值
-            Comma,                       // 逗号
-        };
-        
-        Operator op;
-        std::unique_ptr<Expression> left;
-        std::unique_ptr<Expression> right;
-        
-        void accept(ASTVisitor& visitor) override;
-        void dump(std::ostream& os) const override;
-        ::type::Type* getType() const override;
-        bool isLvalue() const override;
-        bool isConstant() const override;
-    };
-    
-    // 变量声明
-    class VariableDeclaration : public Declaration {
-    public:
-        std::unique_ptr<TypeSpecifier> type;
-        std::string name;
-        std::unique_ptr<Expression> initializer;
-        bool isExtern = false;
-        bool isStatic = false;
-        bool isConst = false;
-        
-        void accept(ASTVisitor& visitor) override;
-        void dump(std::ostream& os) const override;
-        ::symbol::Symbol* getSymbol() const override;
-    };
-    
-    // 函数声明
-    class FunctionDeclaration : public Declaration {
-    public:
-        std::unique_ptr<TypeSpecifier> returnType;
-        std::string name;
-        std::vector<std::unique_ptr<VariableDeclaration>> parameters;
-        std::unique_ptr<CompoundStatement> body;
-        bool isExtern = false;
-        bool isStatic = false;
-        bool isInline = false;
-        
-        void accept(ASTVisitor& visitor) override;
-        void dump(std::ostream& os) const override;
-        ::symbol::Symbol* getSymbol() const override;
-    };
-}
+    // 动态数组存储语句和声明
+    struct Vector* statements;    // Statement*
+    struct Vector* declarations;  // Declaration*
+} CompoundStatement;
+
+// 二元运算符
+typedef enum {
+    BINOP_ADD, BINOP_SUB, BINOP_MUL, BINOP_DIV, BINOP_MOD,    // 算术
+    BINOP_EQ, BINOP_NE, BINOP_LT, BINOP_LE, BINOP_GT, BINOP_GE, // 关系
+    BINOP_AND, BINOP_OR,                                     // 逻辑
+    BINOP_ASSIGN, BINOP_ADD_ASSIGN, BINOP_SUB_ASSIGN,         // 赋值
+    BINOP_COMMA                                              // 逗号
+} BinaryOperator;
+
+typedef struct BinaryOperatorExpr {
+    Expression base;
+    BinaryOperator op;
+    Expression* left;
+    Expression* right;
+} BinaryOperatorExpr;
+
+// 变量声明
+typedef struct VariableDeclaration {
+    Declaration base;
+    TypeSpecifier* type;
+    char* name;
+    Expression* initializer;
+    bool isExtern;
+    bool isStatic;
+    bool isConst;
+} VariableDeclaration;
+
+// 函数声明
+typedef struct FunctionDeclaration {
+    Declaration base;
+    TypeSpecifier* returnType;
+    char* name;
+    struct Vector* parameters;  // VariableDeclaration*
+    CompoundStatement* body;
+    bool isExtern;
+    bool isStatic;
+    bool isInline;
+} FunctionDeclaration;
+
+// 构造函数
+ASTNode* createCompoundStatement(void);
+ASTNode* createBinaryOperator(BinaryOperator op, Expression* left, Expression* right);
+ASTNode* createVariableDeclaration(const char* name, TypeSpecifier* type);
+ASTNode* createFunctionDeclaration(const char* name, TypeSpecifier* returnType);
+
+#endif // AST_H
 ```
 
 ### 符号表结构设计
@@ -396,8 +412,7 @@ namespace ast {
 
 ```mermaid
 classDiagram
-    class Symbol {
-        <<enumeration>>
+    struct Symbol {
         +Variable
         +Function
         +Type
@@ -405,27 +420,27 @@ classDiagram
         +Macro
     }
     
-    class Scope {
+    struct Scope {
         +int level
         +Scope* parent
-        +unordered_map~string, Symbol*~symbols
-        +void addSymbol(string name, Symbol* symbol)
-        +Symbol* lookup(string name)
-        +Symbol* lookupRecursive(string name)
+        +HashTable* symbols
+        +void (*addSymbol)(Scope* self, const char* name, Symbol* symbol)
+        +Symbol* (*lookup)(const Scope* self, const char* name)
+        +Symbol* (*lookupRecursive)(const Scope* self, const char* name)
     }
     
-    class SymbolTable {
-        +vector~unique_ptr~Scope~~ scopes
+    struct SymbolTable {
+        +Vector* scopes
         +Scope* globalScope
         +Scope* currentScope
-        +void enterScope()
-        +void exitScope()
-        +void addSymbol(string name, Symbol* symbol)
-        +Symbol* lookup(string name)
+        +void (*enterScope)(SymbolTable* self)
+        +void (*exitScope)(SymbolTable* self)
+        +void (*addSymbol)(SymbolTable* self, const char* name, Symbol* symbol)
+        +Symbol* (*lookup)(const SymbolTable* self, const char* name)
     }
     
-    class Symbol {
-        +string name
+    struct Symbol {
+        +char* name
         +SymbolKind kind
         +Type* type
         +SourceLocation location
@@ -443,82 +458,104 @@ classDiagram
 
 #### 符号表实现
 
-```cpp
+```c
 // symbol.h
-namespace symbol {
-    enum class SymbolKind {
-        Variable,
-        Function,
-        Type,
-        EnumConstant,
-        Macro,
-        Label,
-    };
+#ifndef SYMBOL_H
+#define SYMBOL_H
+
+#include <stdbool.h>
+#include <stddef.h>
+
+// 前向声明
+typedef struct Type Type;
+typedef struct Symbol Symbol;
+typedef struct Scope Scope;
+typedef struct SymbolTable SymbolTable;
+
+// 符号类型枚举
+typedef enum {
+    SYMBOL_VARIABLE,
+    SYMBOL_FUNCTION,
+    SYMBOL_TYPE,
+    SYMBOL_ENUM_CONSTANT,
+    SYMBOL_MACRO,
+    SYMBOL_LABEL
+} SymbolKind;
+
+// 符号结构
+struct Symbol {
+    char* name;
+    SymbolKind kind;
+    Type* type;
+    SourceLocation location;
+    bool isDefined;
+    bool isExtern;
+    bool isStatic;
+    int storageSize;
+    int alignment;
+    void* value;  // 用于常量值
     
-    class Symbol {
-    public:
-        std::string name;
-        SymbolKind kind;
-        ::type::Type* type = nullptr;
-        SourceLocation location;
-        bool isDefined = false;
-        bool isExtern = false;
-        bool isStatic = false;
-        int storageSize = 0;
-        int alignment = 0;
-        void* value = nullptr;  // 用于常量值
-        
-        // 构造函数
-        Symbol(const std::string& name, SymbolKind kind, SourceLocation loc)
-            : name(name), kind(kind), location(loc) {}
-        
-        // 辅助方法
-        bool isVariable() const { return kind == SymbolKind::Variable; }
-        bool isFunction() const { return kind == SymbolKind::Function; }
-        bool isType() const { return kind == SymbolKind::Type; }
-    };
+    // 引用计数用于内存管理
+    int refCount;
+};
+
+// 符号表条目（用于哈希表）
+typedef struct SymbolEntry {
+    char* key;
+    Symbol* symbol;
+    struct SymbolEntry* next;  // 链表解决冲突
+} SymbolEntry;
+
+// 作用域结构
+struct Scope {
+    int level;
+    Scope* parent;
+    SymbolEntry** symbolTable;  // 哈希表
+    size_t tableSize;
+    size_t symbolCount;
+};
+
+// 符号表结构
+struct SymbolTable {
+    struct Vector* scopes;  // Scope*
+    Scope* globalScope;
+    Scope* currentScope;
     
-    class Scope {
-    public:
-        int level;
-        Scope* parent = nullptr;
-        std::unordered_map<std::string, std::unique_ptr<Symbol>> symbols;
-        
-        explicit Scope(int level, Scope* parent = nullptr)
-            : level(level), parent(parent) {}
-        
-        void addSymbol(std::unique_ptr<Symbol> symbol);
-        Symbol* lookup(const std::string& name);
-        Symbol* lookupRecursive(const std::string& name);
-        bool isGlobal() const { return parent == nullptr; }
-    };
-    
-    class SymbolTable {
-    private:
-        std::vector<std::unique_ptr<Scope>> scopes;
-        Scope* globalScope = nullptr;
-        Scope* currentScope = nullptr;
-        
-    public:
-        SymbolTable();
-        
-        // 作用域管理
-        void enterScope();
-        void exitScope();
-        Scope* getCurrentScope() const { return currentScope; }
-        Scope* getGlobalScope() const { return globalScope; }
-        
-        // 符号管理
-        void addSymbol(std::unique_ptr<Symbol> symbol);
-        Symbol* lookup(const std::string& name);
-        Symbol* lookupInCurrentScope(const std::string& name);
-        Symbol* lookupRecursive(const std::string& name);
-        
-        // 工具方法
-        int getScopeLevel() const { return scopes.size() - 1; }
-        bool isInGlobalScope() const { return currentScope == globalScope; }
-    };
-}
+    // 内存池管理
+    struct MemoryPool* symbolPool;
+    struct MemoryPool* scopePool;
+};
+
+// 构造函数和析构函数
+SymbolTable* createSymbolTable(void);
+void destroySymbolTable(SymbolTable* table);
+
+// 作用域管理
+void symbolTableEnterScope(SymbolTable* table);
+void symbolTableExitScope(SymbolTable* table);
+Scope* symbolTableGetCurrentScope(const SymbolTable* table);
+Scope* symbolTableGetGlobalScope(const SymbolTable* table);
+
+// 符号管理
+bool symbolTableAddSymbol(SymbolTable* table, Symbol* symbol);
+Symbol* symbolTableLookup(const SymbolTable* table, const char* name);
+Symbol* symbolTableLookupInCurrentScope(const SymbolTable* table, const char* name);
+Symbol* symbolTableLookupRecursive(const SymbolTable* table, const char* name);
+
+// 符号构造函数
+Symbol* createSymbol(const char* name, SymbolKind kind, SourceLocation location);
+void destroySymbol(Symbol* symbol);
+
+// 符号辅助方法
+bool symbolIsVariable(const Symbol* symbol);
+bool symbolIsFunction(const Symbol* symbol);
+bool symbolIsType(const Symbol* symbol);
+
+// 工具方法
+int symbolTableGetScopeLevel(const SymbolTable* table);
+bool symbolTableIsInGlobalScope(const SymbolTable* table);
+
+#endif // SYMBOL_H
 ```
 
 ### 中间表示(IR)设计
@@ -527,49 +564,45 @@ namespace symbol {
 
 ```mermaid
 classDiagram
-    class Value {
-        <<abstract>>
+    struct Value {
         +Type* type
-        +virtual bool isConstant() const
-        +virtual bool isInstruction() const
-        +virtual void dump(std::ostream& os) const
+        +bool (*isConstant)(const Value* self)
+        +bool (*isInstruction)(const Value* self)
+        +void (*dump)(const Value* self, FILE* os)
     }
     
-    class Instruction {
-        <<abstract>>
+    struct Instruction {
         +int id
         +BasicBlock* parent
-        +vector~Value*~operands
-        +virtual bool isTerminator() const
-        +virtual bool hasSideEffects() const
+        +Vector* operands
+        +bool (*isTerminator)(const Instruction* self)
+        +bool (*hasSideEffects)(const Instruction* self)
     }
     
-    class BasicBlock {
-        +string name
+    struct BasicBlock {
+        +char* name
         +Function* parent
-        +vector~unique_ptr~Instruction~~ instructions
-        +BasicBlock* predecessor1
-        +BasicBlock* predecessor2
-        +BasicBlock* successor1
-        +BasicBlock* successor2
-        +void addInstruction(unique_ptr~Instruction~~ inst)
+        +Vector* instructions
+        +Vector* predecessors
+        +Vector* successors
+        +void (*addInstruction)(BasicBlock* self, Instruction* inst)
     }
     
-    class Function {
-        +string name
+    struct Function {
+        +char* name
         +Type* returnType
-        +vector~Parameter~ parameters
-        +vector~unique_ptr~BasicBlock~~ basicBlocks
+        +Vector* parameters
+        +Vector* basicBlocks
         +SymbolTable localSymbols
-        +void addBasicBlock(unique_ptr~BasicBlock~~ block)
+        +void (*addBasicBlock)(Function* self, BasicBlock* block)
     }
     
-    class Module {
-        +string name
-        +vector~unique_ptr~Function~~ functions
-        +vector~GlobalVariable~ globals
+    struct Module {
+        +char* name
+        +Vector* functions
+        +Vector* globals
         +SymbolTable globalSymbols
-        +void addFunction(unique_ptr~Function~~ func)
+        +void (*addFunction)(Module* self, Function* func)
     }
     
     Value <|-- Instruction
@@ -591,104 +624,161 @@ classDiagram
 
 #### IR实现
 
-```cpp
+```c
 // ir.h
-namespace ir {
-    // 类型系统
-    class Type {
-    public:
-        enum class Kind {
-            Void, Int8, Int16, Int32, Int64,
-            Float, Double, Pointer, Array, Function,
-            Struct, Union
-        };
-        
-        Kind kind;
-        explicit Type(Kind kind) : kind(kind) {}
-        virtual ~Type() = default;
-        
-        virtual bool isInteger() const;
-        virtual bool isFloatingPoint() const;
-        virtual bool isPointer() const;
-        virtual bool isAggregate() const;
-        virtual size_t getSize() const = 0;
-        virtual void dump(std::ostream& os) const = 0;
-    };
+#ifndef IR_H
+#define IR_H
+
+#include <stdbool.h>
+#include <stddef.h>
+
+// 前向声明
+typedef struct Type Type;
+typedef struct Value Value;
+typedef struct Instruction Instruction;
+typedef struct BasicBlock BasicBlock;
+typedef struct Function Function;
+typedef struct Module Module;
+typedef struct SymbolTable SymbolTable;
+
+// IR类型系统
+typedef enum {
+    TYPE_VOID, TYPE_INT8, TYPE_INT16, TYPE_INT32, TYPE_INT64,
+    TYPE_FLOAT, TYPE_DOUBLE, TYPE_POINTER, TYPE_ARRAY, TYPE_FUNCTION,
+    TYPE_STRUCT, TYPE_UNION
+} TypeKind;
+
+// 类型结构
+struct Type {
+    TypeKind kind;
     
-    // 基础值类
-    class Value {
-    public:
-        Type* type;
-        std::string name;
-        int id = -1;  // 用于SSA形式
-        
-        explicit Value(Type* type, const std::string& name = "")
-            : type(type), name(name) {}
-        virtual ~Value() = default;
-        
-        virtual bool isConstant() const { return false; }
-        virtual bool isInstruction() const { return false; }
-        virtual bool isGlobal() const { return false; }
-        virtual void dump(std::ostream& os) const = 0;
-    };
+    // 函数指针表
+    bool (*isInteger)(const Type* self);
+    bool (*isFloatingPoint)(const Type* self);
+    bool (*isPointer)(const Type* self);
+    bool (*isAggregate)(const Type* self);
+    size_t (*getSize)(const Type* self);
+    void (*dump)(const Type* self, FILE* os);
     
-    // 基本块
-    class BasicBlock {
-    public:
-        std::string name;
-        Function* parent = nullptr;
-        std::vector<std::unique_ptr<Instruction>> instructions;
-        std::vector<BasicBlock*> predecessors;
-        std::vector<BasicBlock*> successors;
+    // 类型特定数据
+    union {
+        struct {
+            Type* elementType;
+            size_t size;
+        } arrayInfo;
         
-        explicit BasicBlock(const std::string& name);
+        struct {
+            Type* returnType;
+            struct Vector* parameterTypes;  // Type*
+            bool isVariadic;
+        } functionInfo;
         
-        void addInstruction(std::unique_ptr<Instruction> inst);
-        void addPredecessor(BasicBlock* pred);
-        void addSuccessor(BasicBlock* succ);
-        void dump(std::ostream& os) const;
-        
-        // CFG分析
-        bool isEmpty() const { return instructions.empty(); }
-        Instruction* getTerminator();
-    };
+        struct {
+            char* name;
+            struct Vector* fields;  // StructField*
+        } structInfo;
+    } data;
+};
+
+// 基础值结构体
+struct Value {
+    Type* type;
+    char* name;
+    int id;  // 用于SSA形式
     
-    // 函数
-    class Function {
-    public:
-        std::string name;
-        Type* returnType;
-        std::vector<Parameter> parameters;
-        std::vector<std::unique_ptr<BasicBlock>> basicBlocks;
-        symbol::SymbolTable symbolTable;
-        bool isVariadic = false;
-        bool hasVarArgs = false;
-        
-        explicit Function(Type* returnType, const std::string& name);
-        
-        void addParameter(Parameter param);
-        void addBasicBlock(std::unique_ptr<BasicBlock> block);
-        BasicBlock* createBasicBlock(const std::string& name);
-        void dump(std::ostream& os) const;
-    };
+    // 函数指针表
+    bool (*isConstant)(const Value* self);
+    bool (*isInstruction)(const Value* self);
+    bool (*isGlobal)(const Value* self);
+    void (*dump)(const Value* self, FILE* os);
     
-    // 模块
-    class Module {
-    public:
-        std::string name;
-        std::vector<std::unique_ptr<Function>> functions;
-        std::vector<GlobalVariable> globals;
-        symbol::SymbolTable globalSymbols;
-        target::TargetMachine* targetMachine = nullptr;
-        
-        explicit Module(const std::string& name);
-        
-        void addFunction(std::unique_ptr<Function> func);
-        void addGlobal(GlobalVariable global);
-        Function* getFunction(const std::string& name);
-        void dump(std::ostream& os) const;
-    };
-}
+    // 引用计数
+    int refCount;
+};
+
+// 基本块
+struct BasicBlock {
+    char* name;
+    Function* parent;
+    struct Vector* instructions;  // Instruction*
+    struct Vector* predecessors;   // BasicBlock*
+    struct Vector* successors;    // BasicBlock*
+    
+    // 内存管理
+    struct MemoryPool* instructionPool;
+};
+
+// 函数参数
+typedef struct {
+    char* name;
+    Type* type;
+} Parameter;
+
+// 函数
+struct Function {
+    char* name;
+    Type* returnType;
+    struct Vector* parameters;  // Parameter*
+    struct Vector* basicBlocks; // BasicBlock*
+    SymbolTable* symbolTable;
+    bool isVariadic;
+    bool hasVarArgs;
+    
+    // 内存管理
+    struct MemoryPool* basicBlockPool;
+};
+
+// 全局变量
+typedef struct {
+    char* name;
+    Type* type;
+    void* initialValue;
+    bool isExtern;
+    bool isConstant;
+} GlobalVariable;
+
+// 模块
+struct Module {
+    char* name;
+    struct Vector* functions;  // Function*
+    struct Vector* globals;    // GlobalVariable*
+    SymbolTable* globalSymbols;
+    struct TargetMachine* targetMachine;
+    
+    // 内存管理
+    struct MemoryPool* functionPool;
+    struct MemoryPool* globalPool;
+};
+
+// 构造函数和析构函数
+Module* createModule(const char* name);
+void destroyModule(Module* module);
+Function* createFunction(Type* returnType, const char* name);
+void destroyFunction(Function* function);
+BasicBlock* createBasicBlock(const char* name);
+void destroyBasicBlock(BasicBlock* block);
+
+// 基本块操作
+void basicBlockAddInstruction(BasicBlock* block, Instruction* inst);
+void basicBlockAddPredecessor(BasicBlock* block, BasicBlock* pred);
+void basicBlockAddSuccessor(BasicBlock* block, BasicBlock* succ);
+void basicBlockDump(const BasicBlock* block, FILE* os);
+bool basicBlockIsEmpty(const BasicBlock* block);
+Instruction* basicBlockGetTerminator(const BasicBlock* block);
+
+// 函数操作
+void functionAddParameter(Function* func, Parameter param);
+void functionAddBasicBlock(Function* func, BasicBlock* block);
+BasicBlock* functionCreateBasicBlock(Function* func, const char* name);
+void functionDump(const Function* func, FILE* os);
+
+// 模块操作
+void moduleAddFunction(Module* module, Function* func);
+void moduleAddGlobal(Module* module, GlobalVariable global);
+Function* moduleGetFunction(const Module* module, const char* name);
+void moduleDump(const Module* module, FILE* os);
+
+#endif // IR_H
 ```
 
 ### 类型系统设计
@@ -697,57 +787,55 @@ namespace ir {
 
 ```mermaid
 classDiagram
-    class Type {
-        <<abstract>>
+    struct Type {
         +TypeKind kind
-        +virtual size_t getSize() const = 0
-        +virtual size_t getAlignment() const = 0
-        +virtual bool isComplete() const = 0
-        +virtual void dump(std::ostream& os) const = 0
-        +virtual bool equals(Type* other) const
+        +size_t (*getSize)(const Type* self)
+        +size_t (*getAlignment)(const Type* self)
+        +bool (*isComplete)(const Type* self)
+        +void (*dump)(const Type* self, FILE* os)
+        +bool (*equals)(const Type* self, Type* other)
     }
     
-    class PrimitiveType {
+    struct PrimitiveType {
         +bool isConst
         +bool isVolatile
     }
     
-    class AggregateType {
-        <<abstract>>
-        +vector~Type*~members
+    struct AggregateType {
+        +Vector* members
         +bool isComplete
     }
     
-    class PointerType {
+    struct PointerType {
         +Type* pointeeType
     }
     
-    class ArrayType {
+    struct ArrayType {
         +Type* elementType
         +size_t size  // 0表示变长数组
     }
     
-    class FunctionType {
+    struct FunctionType {
         +Type* returnType
-        +vector~Type*~parameterTypes
+        +Vector* parameterTypes
         +bool isVariadic
     }
     
-    class StructType {
-        +string name
-        +vector~StructField~ fields
-        +vector~size_t~ offsets
+    struct StructType {
+        +char* name
+        +Vector* fields
+        +Vector* offsets
     }
     
-    class UnionType {
-        +string name
-        +vector~UnionField~ fields
+    struct UnionType {
+        +char* name
+        +Vector* fields
     }
     
-    class EnumType {
-        +string name
+    struct EnumType {
+        +char* name
         +PrimitiveType* underlyingType
-        +vector~EnumConstant~ constants
+        +Vector* constants
     }
     
     Type <|-- PrimitiveType
@@ -766,38 +854,38 @@ classDiagram
 
 ```mermaid
 classDiagram
-    class CompilerDriver {
-        +int main(int argc, char* argv[])
-        +bool processCommandLine(int argc, char* argv[])
-        +bool compileFiles(vector~string~ files)
-        +bool compileFile(string filename)
+    struct CompilerDriver {
+        +int (*main)(int argc, char* argv[])
+        +bool (*processCommandLine)(CompilerDriver* driver, int argc, char* argv[])
+        +bool (*compileFiles)(CompilerDriver* driver, struct Vector* files)
+        +bool (*compileFile)(CompilerDriver* driver, const char* filename)
     }
     
-    class CompilationUnit {
-        +string filename
-        +vector~string~ includePaths
-        +unordered_map~string, string~ macroDefinitions
-        +bool preprocess()
-        +unique_ptr~FrontendResult~ analyze()
+    struct CompilationUnit {
+        +char* filename
+        +Vector* includePaths
+        +HashTable* macroDefinitions
+        +bool (*preprocess)(CompilationUnit* self)
+        +FrontendResult* (*analyze)(CompilationUnit* self)
     }
     
-    class Frontend {
-        +unique_ptr~FrontendResult~ process(string source)
-        +Lexer* createLexer(string source)
-        +Parser* createParser(Lexer* lexer)
-        +SemanticAnalyzer* createAnalyzer()
+    struct Frontend {
+        +FrontendResult* (*process)(Frontend* self, const char* source)
+        +struct Lexer* (*createLexer)(Frontend* self, const char* source)
+        +struct Parser* (*createParser)(Frontend* self, struct Lexer* lexer)
+        +struct SemanticAnalyzer* (*createAnalyzer)(Frontend* self)
     }
     
-    class Optimizer {
-        +unique_ptr~IRResult~ optimize(IR* ir)
-        +void addPass(unique_ptr~OptimizationPass~ pass)
-        +bool runPasses(Function* func)
+    struct Optimizer {
+        +OptimizerResult* (*optimize)(Optimizer* self, Module* ir)
+        +void (*addPass)(Optimizer* self, OptimizationPass* pass)
+        +bool (*runPasses)(Optimizer* self, Function* func)
     }
     
-    class CodeGenerator {
-        +bool generate(IR* ir, string outputFile)
-        +TargetMachine* createTargetMachine(string target)
-        +DebugInfoGenerator* createDebugInfo()
+    struct CodeGenerator {
+        +bool (*generate)(CodeGenerator* self, Module* ir, const char* outputFile)
+        +TargetMachine* (*createTargetMachine)(CodeGenerator* self, const char* target)
+        +DebugInfoGenerator* (*createDebugInfo)(CodeGenerator* self)
     }
     
     CompilerDriver --> CompilationUnit : manages
@@ -808,109 +896,188 @@ classDiagram
 
 ### 主要接口定义
 
-```cpp
+```c
 // compiler_driver.h
-class CompilerDriver {
-public:
-    struct Options {
-        std::string outputFile = "a.out";
-        std::string targetTriple;
-        std::vector<std::string> includePaths;
-        std::vector<std::string> macroDefinitions;
-        bool optimize = false;
-        bool debugInfo = false;
-        bool generateIR = false;
-        std::string optimizationLevel = "2";
-        bool verbose = false;
-        bool preprocessOnly = false;
-    };
-    
-    int main(int argc, char* argv[]);
-    
-private:
-    Options options;
-    std::unique_ptr<diagnostic::DiagnosticEngine> diagnostics;
-    std::unique_ptr<frontend::Frontend> frontend;
-    std::unique_ptr<midend::Optimizer> optimizer;
-    std::unique_ptr<backend::CodeGenerator> codegen;
-    
-    bool processCommandLine(int argc, char* argv[]);
-    bool compileFile(const std::string& filename);
-};
+#ifndef COMPILER_DRIVER_H
+#define COMPILER_DRIVER_H
+
+#include <stdbool.h>
+#include <stddef.h>
+
+// 前向声明
+typedef struct DiagnosticEngine DiagnosticEngine;
+typedef struct Frontend Frontend;
+typedef struct Optimizer Optimizer;
+typedef struct CodeGenerator CodeGenerator;
+typedef struct TargetMachine TargetMachine;
+
+// 编译器选项
+typedef struct {
+    char* outputFile;
+    char* targetTriple;
+    struct Vector* includePaths;     // char*
+    struct Vector* macroDefinitions;  // char*
+    bool optimize;
+    bool debugInfo;
+    bool generateIR;
+    char* optimizationLevel;
+    bool verbose;
+    bool preprocessOnly;
+} CompilerOptions;
+
+// 编译器驱动
+typedef struct {
+    CompilerOptions options;
+    DiagnosticEngine* diagnostics;
+    Frontend* frontend;
+    Optimizer* optimizer;
+    CodeGenerator* codegen;
+} CompilerDriver;
+
+// 构造函数和析构函数
+CompilerDriver* createCompilerDriver(void);
+void destroyCompilerDriver(CompilerDriver* driver);
+
+// 主要接口
+int compilerDriverMain(CompilerDriver* driver, int argc, char* argv[]);
+bool compilerDriverProcessCommandLine(CompilerDriver* driver, int argc, char* argv[]);
+bool compilerDriverCompileFile(CompilerDriver* driver, const char* filename);
+
+#endif // COMPILER_DRIVER_H
 
 // frontend.h
-namespace frontend {
-    class Frontend {
-    public:
-        struct Result {
-            std::unique_ptr<ast::ASTNode> ast;
-            std::unique_ptr<symbol::SymbolTable> symbolTable;
-            std::unique_ptr<ir::Module> ir;
-            bool success = true;
-            std::vector<std::string> errors;
-        };
-        
-        Frontend(std::unique_ptr<diagnostic::DiagnosticEngine> diagnostics);
-        
-        std::unique_ptr<Result> process(const std::string& source, 
-                                       const std::string& filename);
-        
-    private:
-        std::unique_ptr<diagnostic::DiagnosticEngine> diagnostics_;
-        std::unique_ptr<lexer::Lexer> lexer_;
-        std::unique_ptr<parser::Parser> parser_;
-        std::unique_ptr<semanticanalyzer::SemanticAnalyzer> analyzer_;
-        std::unique_ptr<ir::IRGenerator> ir_generator_;
-    };
-}
+#ifndef FRONTEND_H
+#define FRONTEND_H
+
+#include <stdbool.h>
+#include <stddef.h>
+
+// 前向声明
+typedef struct ASTNode ASTNode;
+typedef struct SymbolTable SymbolTable;
+typedef struct Module Module;
+typedef struct DiagnosticEngine DiagnosticEngine;
+
+// 前端结果
+typedef struct {
+    ASTNode* ast;
+    SymbolTable* symbolTable;
+    Module* ir;
+    bool success;
+    struct Vector* errors;  // char*
+} FrontendResult;
+
+// 前端接口
+typedef struct {
+    DiagnosticEngine* diagnostics;
+    
+    // 私有实现数据
+    struct Lexer* lexer;
+    struct Parser* parser;
+    struct SemanticAnalyzer* analyzer;
+    struct IRGenerator* irGenerator;
+} Frontend;
+
+// 构造函数和析构函数
+Frontend* createFrontend(DiagnosticEngine* diagnostics);
+void destroyFrontend(Frontend* frontend);
+
+// 主要接口
+FrontendResult* frontendProcess(Frontend* frontend,
+                               const char* source,
+                               const char* filename);
+void destroyFrontendResult(FrontendResult* result);
+
+#endif // FRONTEND_H
 
 // optimizer.h
-namespace midend {
-    class Optimizer {
-    public:
-        struct Result {
-            std::unique_ptr<ir::Module> optimizedIR;
-            std::unordered_map<std::string, int> passStatistics;
-            bool success = true;
-        };
-        
-        explicit Optimizer(std::unique_ptr<target::TargetMachine> target);
-        
-        std::unique_ptr<Result> optimize(std::unique_ptr<ir::Module> ir);
-        void addPass(std::unique_ptr<OptimizationPass> pass);
-        
-    private:
-        std::unique_ptr<target::TargetMachine> target_;
-        std::vector<std::unique_ptr<OptimizationPass>> passes_;
-        
-        bool runFunctionPasses(ir::Function* func);
-        bool runModulePasses(ir::Module* module);
-    };
-}
+#ifndef OPTIMIZER_H
+#define OPTIMIZER_H
+
+#include <stdbool.h>
+#include <stddef.h>
+
+// 前向声明
+typedef struct Module Module;
+typedef struct Function Function;
+typedef struct TargetMachine TargetMachine;
+typedef struct OptimizationPass OptimizationPass;
+
+// 优化器结果
+typedef struct {
+    Module* optimizedIR;
+    struct HashTable* passStatistics;  // char* -> int
+    bool success;
+} OptimizerResult;
+
+// 优化器接口
+typedef struct {
+    TargetMachine* target;
+    struct Vector* passes;  // OptimizationPass*
+    
+    // 私有数据
+    void* privateData;
+} Optimizer;
+
+// 构造函数和析构函数
+Optimizer* createOptimizer(TargetMachine* target);
+void destroyOptimizer(Optimizer* optimizer);
+
+// 主要接口
+OptimizerResult* optimizerOptimize(Optimizer* optimizer, Module* ir);
+bool optimizerAddPass(Optimizer* optimizer, OptimizationPass* pass);
+void destroyOptimizerResult(OptimizerResult* result);
+
+// 私有方法
+bool optimizerRunFunctionPasses(Optimizer* optimizer, Function* func);
+bool optimizerRunModulePasses(Optimizer* optimizer, Module* module);
+
+#endif // OPTIMIZER_H
 
 // code_generator.h
-namespace backend {
-    class CodeGenerator {
-    public:
-        struct Result {
-            std::vector<uint8_t> binaryData;
-            std::unique_ptr<debug::DebugInfo> debugInfo;
-            bool success = true;
-            std::string errorMessage;
-        };
-        
-        CodeGenerator(std::unique_ptr<target::TargetMachine> target,
-                     std::unique_ptr<debug::DebugInfoGenerator> debugGen);
-        
-        std::unique_ptr<Result> generate(std::unique_ptr<ir::Module> ir,
-                                        const std::string& outputFile);
-        
-    private:
-        std::unique_ptr<target::TargetMachine> target_;
-        std::unique_ptr<debug::DebugInfoGenerator> debugGen_;
-        std::unique_ptr<registeralloc::RegisterAllocator> regAlloc_;
-    };
-}
+#ifndef CODE_GENERATOR_H
+#define CODE_GENERATOR_H
+
+#include <stdbool.h>
+#include <stddef.h>
+
+// 前向声明
+typedef struct Module Module;
+typedef struct TargetMachine TargetMachine;
+typedef struct DebugInfoGenerator DebugInfoGenerator;
+typedef struct RegisterAllocator RegisterAllocator;
+typedef struct DebugInfo DebugInfo;
+
+// 代码生成结果
+typedef struct {
+    struct Vector* binaryData;  // uint8_t*
+    DebugInfo* debugInfo;
+    bool success;
+    char* errorMessage;
+} CodeGenResult;
+
+// 代码生成器接口
+typedef struct {
+    TargetMachine* target;
+    DebugInfoGenerator* debugGen;
+    RegisterAllocator* regAlloc;
+    
+    // 私有数据
+    void* privateData;
+} CodeGenerator;
+
+// 构造函数和析构函数
+CodeGenerator* createCodeGenerator(TargetMachine* target,
+                                DebugInfoGenerator* debugGen);
+void destroyCodeGenerator(CodeGenerator* codegen);
+
+// 主要接口
+CodeGenResult* codeGeneratorGenerate(CodeGenerator* codegen,
+                                  Module* ir,
+                                  const char* outputFile);
+void destroyCodeGenResult(CodeGenResult* result);
+
+#endif // CODE_GENERATOR_H
 ```
 
 ## 现代特性支持
@@ -926,38 +1093,66 @@ namespace backend {
 - 边界检查函数 (`<stdckdint.h>`)
 
 #### 类型系统增强
-```cpp
+```c
 // type_system.h
-namespace type {
-    class AtomicType : public Type {
-    public:
-        Type* atomicType;
-        MemoryOrder memoryOrder;
-        
-        explicit AtomicType(Type* baseType)
-            : atomicType(baseType) {}
-    };
-    
-    class AlignedType : public Type {
-    public:
-        Type* baseType;
-        size_t alignment;
-        
-        explicit AlignedType(Type* baseType, size_t align)
-            : baseType(baseType), alignment(align) {}
-    };
-}
+#ifndef TYPE_SYSTEM_H
+#define TYPE_SYSTEM_H
 
-// 泛型选择支持
-class GenericSelection : public Expression {
-public:
-    std::unique_ptr<Expression> controllingExpression;
-    std::vector<GenericAssociation> associations;
-    std::unique_ptr<Expression> defaultAssociation;
-    
-    void accept(ASTVisitor& visitor) override;
-    ::type::Type* getType() const override;
-};
+#include <stddef.h>
+
+// 前向声明
+typedef struct Type Type;
+typedef struct Expression Expression;
+
+// 内存顺序枚举（C11原子操作）
+typedef enum {
+    MEMORY_ORDER_RELAXED,
+    MEMORY_ORDER_CONSUME,
+    MEMORY_ORDER_ACQUIRE,
+    MEMORY_ORDER_RELEASE,
+    MEMORY_ORDER_ACQ_REL,
+    MEMORY_ORDER_SEQ_CST
+} MemoryOrder;
+
+// 原子类型
+typedef struct {
+    Type base;
+    Type* atomicType;
+    MemoryOrder memoryOrder;
+} AtomicType;
+
+// 对齐类型
+typedef struct {
+    Type base;
+    Type* baseType;
+    size_t alignment;
+} AlignedType;
+
+// 泛型关联
+typedef struct {
+    Type* type;
+    Expression* expression;
+} GenericAssociation;
+
+// 泛型选择表达式
+typedef struct {
+    Expression base;
+    Expression* controllingExpression;
+    struct Vector* associations;  // GenericAssociation*
+    Expression* defaultAssociation;
+} GenericSelection;
+
+// 构造函数
+Type* createAtomicType(Type* baseType, MemoryOrder order);
+Type* createAlignedType(Type* baseType, size_t alignment);
+Expression* createGenericSelection(Expression* controllingExpr);
+
+// 泛型选择操作
+void genericSelectionAddAssociation(GenericSelection* selection,
+                                 Type* type, Expression* expr);
+void genericSelectionSetDefault(GenericSelection* selection, Expression* defaultExpr);
+
+#endif // TYPE_SYSTEM_H
 ```
 
 ### 错误恢复机制
@@ -978,99 +1173,157 @@ graph TD
 ```
 
 #### 错误处理实现
-```cpp
+```c
 // error_recovery.h
-namespace error {
-    class SyntaxErrorRecovery {
-    public:
-        enum class RecoveryMode {
-            Panic,      // 恐慌模式，停止当前函数解析
-            Phrase,     // 短语层恢复，跳过到下一个同步点
-            Synchronization, // 同步恢复，基于同步集
-            Heuristic   // 启发式恢复，尝试智能修复
-        };
-        
-        SyntaxErrorRecovery(Parser* parser);
-        
-        bool handleError(const SourceLocation& loc, 
-                        const std::string& message,
-                        RecoveryMode mode = RecoveryMode::Synchronization);
-        
-        void addSynchronizationPoint(const std::vector<Token::Kind>& syncTokens);
-        
-    private:
-        Parser* parser_;
-        std::vector<std::vector<Token::Kind>> syncPoints_;
-        size_t errorCount_ = 0;
-        static constexpr size_t maxErrors_ = 20;
-    };
-    
-    class ErrorCollector {
-    public:
-        void addError(SourceLocation loc, const std::string& message);
-        void addWarning(SourceLocation loc, const std::string& message);
-        void addNote(SourceLocation loc, const std::string& message);
-        
-        bool hasErrors() const { return !errors_.empty(); }
-        size_t getErrorCount() const { return errors_.size(); }
-        
-        void dump(std::ostream& os) const;
-        
-    private:
-        struct ErrorMessage {
-            SourceLocation location;
-            std::string message;
-            std::string level; // "error", "warning", "note"
-        };
-        
-        std::vector<ErrorMessage> errors_;
-        std::vector<ErrorMessage> warnings_;
-        std::vector<ErrorMessage> notes_;
-    };
-}
+#ifndef ERROR_RECOVERY_H
+#define ERROR_RECOVERY_H
+
+#include <stdbool.h>
+#include <stddef.h>
+
+// 前向声明
+typedef struct Parser Parser;
+typedef struct SourceLocation SourceLocation;
+typedef struct Token Token;
+
+// 错误恢复模式
+typedef enum {
+    RECOVERY_MODE_PANIC,         // 恐慌模式，停止当前函数解析
+    RECOVERY_MODE_PHRASE,        // 短语层恢复，跳过到下一个同步点
+    RECOVERY_MODE_SYNCHRONIZATION, // 同步恢复，基于同步集
+    RECOVERY_MODE_HEURISTIC      // 启发式恢复，尝试智能修复
+} RecoveryMode;
+
+// 错误恢复结构体
+typedef struct {
+    Parser* parser;
+    struct Vector* syncPoints;   // Vector<Vector<Token::Kind>*>*
+    size_t errorCount;
+    size_t maxErrors;
+} SyntaxErrorRecovery;
+
+// 错误消息结构体
+typedef struct {
+    SourceLocation location;
+    char* message;
+    char* level; // "error", "warning", "note"
+} ErrorMessage;
+
+// 错误收集器结构体
+typedef struct {
+    struct Vector* errors;      // ErrorMessage*
+    struct Vector* warnings;    // ErrorMessage*
+    struct Vector* notes;       // ErrorMessage*
+} ErrorCollector;
+
+// 构造函数和析构函数
+SyntaxErrorRecovery* createSyntaxErrorRecovery(Parser* parser);
+void destroySyntaxErrorRecovery(SyntaxErrorRecovery* recovery);
+
+ErrorCollector* createErrorCollector(void);
+void destroyErrorCollector(ErrorCollector* collector);
+
+// 错误恢复操作
+bool syntaxErrorRecoveryHandleError(SyntaxErrorRecovery* recovery,
+                                   const SourceLocation* loc,
+                                   const char* message,
+                                   RecoveryMode mode);
+void syntaxErrorRecoveryAddSynchronizationPoint(SyntaxErrorRecovery* recovery,
+                                             struct Vector* syncTokens);
+
+// 错误收集器操作
+void errorCollectorAddError(ErrorCollector* collector,
+                           const SourceLocation* loc,
+                           const char* message);
+void errorCollectorAddWarning(ErrorCollector* collector,
+                             const SourceLocation* loc,
+                             const char* message);
+void errorCollectorAddNote(ErrorCollector* collector,
+                          const SourceLocation* loc,
+                          const char* message);
+
+bool errorCollectorHasErrors(const ErrorCollector* collector);
+size_t errorCollectorGetErrorCount(const ErrorCollector* collector);
+void errorCollectorDump(const ErrorCollector* collector, FILE* os);
+
+#endif // ERROR_RECOVERY_H
 ```
 
 ### 调试信息生成
 
 #### DWARF调试信息
-```cpp
+```c
 // dwarf_generator.h
-namespace debug {
-    class DWARFGenerator {
-    public:
-        DWARFGenerator(std::ostream& output, 
-                      const CompileUnit& compileUnit);
-        
-        void generateDebugInfo(const ir::Module* module);
-        void generateLineInfo(const source::SourceManager& sourceMgr);
-        void generateVariableInfo(const symbol::SymbolTable& symbols);
-        
-    private:
-        std::ostream& output_;
-        const CompileUnit& compileUnit_;
-        
-        void writeDIE(DIE* die);
-        void writeAbbreviationTable();
-        void writeLineNumberProgram();
-    };
+#ifndef DWARF_GENERATOR_H
+#define DWARF_GENERATOR_H
+
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+
+// 前向声明
+typedef struct Module Module;
+typedef struct SourceManager SourceManager;
+typedef struct SymbolTable SymbolTable;
+typedef struct DIE DIE;
+typedef struct SourceLocation SourceLocation;
+typedef struct CompileUnit CompileUnit;
+
+// DWARF生成器
+typedef struct {
+    FILE* output;
+    const CompileUnit* compileUnit;
     
-    class SourceLocationMapping {
-    public:
-        struct SourceMapping {
-            uint32_t lowPC;
-            uint32_t highPC;
-            std::string file;
-            uint32_t line;
-            uint32_t column;
-        };
-        
-        void addMapping(uint32_t pc, const SourceLocation& loc);
-        SourceLocation getLocation(uint32_t pc) const;
-        
-    private:
-        std::vector<SourceMapping> mappings_;
-    };
-}
+    // 私有数据
+    void* privateData;
+} DWARFGenerator;
+
+// 源位置映射
+typedef struct {
+    uint32_t lowPC;
+    uint32_t highPC;
+    char* file;
+    uint32_t line;
+    uint32_t column;
+} SourceMapping;
+
+// 源位置映射管理器
+typedef struct {
+    struct Vector* mappings;  // SourceMapping*
+    
+    // 优化查找的哈希表
+    struct HashTable* pcToMapping;
+} SourceLocationMapping;
+
+// 构造函数和析构函数
+DWARFGenerator* createDWARFGenerator(FILE* output,
+                                   const CompileUnit* compileUnit);
+void destroyDWARFGenerator(DWARFGenerator* generator);
+
+SourceLocationMapping* createSourceLocationMapping(void);
+void destroySourceLocationMapping(SourceLocationMapping* mapping);
+
+// DWARF生成器操作
+bool dwarfGeneratorGenerateDebugInfo(DWARFGenerator* generator,
+                                  const Module* module);
+bool dwarfGeneratorGenerateLineInfo(DWARFGenerator* generator,
+                                  const SourceManager* sourceMgr);
+bool dwarfGeneratorGenerateVariableInfo(DWARFGenerator* generator,
+                                      const SymbolTable* symbols);
+
+// 私有方法
+void dwarfGeneratorWriteDIE(DWARFGenerator* generator, DIE* die);
+void dwarfGeneratorWriteAbbreviationTable(DWARFGenerator* generator);
+void dwarfGeneratorWriteLineNumberProgram(DWARFGenerator* generator);
+
+// 源位置映射操作
+void sourceLocationMappingAddMapping(SourceLocationMapping* mapping,
+                                   uint32_t pc,
+                                   const SourceLocation* loc);
+SourceLocation sourceLocationMappingGetLocation(const SourceLocationMapping* mapping,
+                                             uint32_t pc);
+
+#endif // DWARF_GENERATOR_H
 ```
 
 ## 扩展性设计
@@ -1116,98 +1369,243 @@ graph TB
 
 ### 优化Pass框架
 
-```cpp
+```c
 // optimization_pass.h
-namespace optimization {
-    class Pass {
-    public:
-        enum class Kind {
-            ModulePass,
-            FunctionPass,
-            BasicBlockPass,
-            InstructionPass
-        };
-        
-        virtual ~Pass() = default;
-        virtual Kind getKind() const = 0;
-        virtual std::string getName() const = 0;
-        virtual bool isRequired() const { return false; }
-        virtual bool runOnModule(ir::Module& module) { return false; }
-        virtual bool runOnFunction(ir::Function& func) { return false; }
-        virtual bool runOnBasicBlock(ir::BasicBlock& block) { return false; }
-    };
+#ifndef OPTIMIZATION_PASS_H
+#define OPTIMIZATION_PASS_H
+
+#include <stdbool.h>
+#include <stddef.h>
+
+// 前向声明
+typedef struct Module Module;
+typedef struct Function Function;
+typedef struct BasicBlock BasicBlock;
+typedef struct Instruction Instruction;
+
+// Pass类型
+typedef enum {
+    PASS_MODULE,
+    PASS_FUNCTION,
+    PASS_BASIC_BLOCK,
+    PASS_INSTRUCTION
+} PassKind;
+
+// Pass基类（使用函数指针实现多态）
+typedef struct Pass {
+    PassKind kind;
+    char* name;
+    bool isRequired;
     
-    class PassManager {
-    public:
-        template<typename PassType>
-        void addPass() {
-            static_assert(std::is_base_of<Pass, PassType>::value,
-                         "PassType must derive from Pass");
-            auto pass = std::make_unique<PassType>();
-            passes_.push_back(std::move(pass));
-        }
-        
-        bool run(ir::Module& module);
-        
-    private:
-        std::vector<std::unique_ptr<Pass>> passes_;
-    };
+    // 函数指针表
+    bool (*runOnModule)(struct Pass* self, Module* module);
+    bool (*runOnFunction)(struct Pass* self, Function* func);
+    bool (*runOnBasicBlock)(struct Pass* self, BasicBlock* block);
+    bool (*runOnInstruction)(struct Pass* self, Instruction* inst);
     
-    // 具体优化Pass示例
-    class ConstantFoldingPass : public Pass {
-    public:
-        Kind getKind() const override { return Kind::FunctionPass; }
-        std::string getName() const override { return "Constant Folding"; }
-        bool runOnFunction(ir::Function& func) override;
-    };
+    // 销毁函数
+    void (*destroy)(struct Pass* self);
     
-    class DeadCodeEliminationPass : public Pass {
-    public:
-        Kind getKind() const override { return Kind::ModulePass; }
-        std::string getName() const override { return "Dead Code Elimination"; }
-        bool runOnModule(ir::Module& module) override;
-    };
-}
+    // 私有数据
+    void* privateData;
+} Pass;
+
+// Pass管理器
+typedef struct {
+    struct Vector* passes;  // Pass*
+    
+    // 统计信息
+    struct {
+        size_t totalRuns;
+        size_t successfulRuns;
+        size_t failedRuns;
+    } statistics;
+} PassManager;
+
+// 具体优化Pass示例
+
+// 常量折叠Pass
+typedef struct {
+    Pass base;
+    // 私有数据
+    size_t constantsFolded;
+} ConstantFoldingPass;
+
+// 死代码消除Pass
+typedef struct {
+    Pass base;
+    // 私有数据
+    size_t instructionsRemoved;
+    size_t basicBlocksRemoved;
+} DeadCodeEliminationPass;
+
+// 构造函数和析构函数
+PassManager* createPassManager(void);
+void destroyPassManager(PassManager* manager);
+
+// Pass管理器操作
+bool passManagerAddPass(PassManager* manager, Pass* pass);
+bool passManagerRun(PassManager* manager, Module* module);
+
+// Pass构造函数
+Pass* createConstantFoldingPass(void);
+Pass* createDeadCodeEliminationPass(void);
+Pass* createLoopOptimizationPass(void);
+Pass* createInliningPass(void);
+
+// Pass辅助函数
+const char* passGetName(const Pass* pass);
+PassKind passGetKind(const Pass* pass);
+bool passIsRequired(const Pass* pass);
+void passDestroy(Pass* pass);
+
+// Pass类型检查宏
+#define DECLARE_PASS(passType, passKind, passName) \
+    static const PassType##VTable passType##_vtable = { \
+        .runOnModule = passType##_runOnModule, \
+        .runOnFunction = passType##_runOnFunction, \
+        .runOnBasicBlock = passType##_runOnBasicBlock, \
+        .runOnInstruction = passType##_runOnInstruction, \
+        .destroy = passType##_destroy \
+    }; \
+    \
+    Pass* passType##_create(void) { \
+        PassType* pass = malloc(sizeof(PassType)); \
+        if (pass) { \
+            pass->base.kind = passKind; \
+            pass->base.name = strdup(passName); \
+            pass->base.isRequired = false; \
+            pass->base.vtable = &passType##_vtable; \
+            passType##_init(pass); \
+        } \
+        return (Pass*)pass; \
+    }
+
+#endif // OPTIMIZATION_PASS_H
 ```
 
 ### 目标平台支持
 
-```cpp
+```c
 // target_machine.h
-namespace target {
-    class TargetMachine {
-    public:
-        virtual ~TargetMachine() = default;
-        virtual std::string getTriple() const = 0;
-        virtual void setTriple(const std::string& triple) = 0;
-        
-        // 寄存器信息
-        virtual const RegisterInfo& getRegisterInfo() const = 0;
-        virtual const InstructionInfo& getInstructionInfo() const = 0;
-        
-        // 调用约定
-        virtual const CallingConvention& getCallingConvention() const = 0;
-        
-        // 数据布局
-        virtual const DataLayout& getDataLayout() const = 0;
-        
-        // 代码生成
-        virtual bool emitFunction(ir::Function& func, 
-                                std::ostream& output) = 0;
-        virtual bool emitModule(ir::Module& module, 
-                              std::ostream& output) = 0;
-    };
+#ifndef TARGET_MACHINE_H
+#define TARGET_MACHINE_H
+
+#include <stdbool.h>
+#include <stddef.h>
+
+// 前向声明
+typedef struct Function Function;
+typedef struct Module Module;
+typedef struct RegisterInfo RegisterInfo;
+typedef struct InstructionInfo InstructionInfo;
+typedef struct CallingConvention CallingConvention;
+typedef struct DataLayout DataLayout;
+
+// 目标机器函数指针表
+typedef struct {
+    // 销毁函数
+    void (*destroy)(struct TargetMachine* self);
     
-    // RISC-V目标机器
-    class RISCVTargetMachine : public TargetMachine {
-    public:
-        RISCVTargetMachine(RISCVSubtarget subtarget);
-        
-        std::string getTriple() const override;
-        const RegisterInfo& getRegisterInfo() const override;
-        // ... 其他实现
-    };
+    // 基本信息
+    const char* (*getTriple)(const struct TargetMachine* self);
+    bool (*setTriple)(struct TargetMachine* self, const char* triple);
+    
+    // 寄存器信息
+    const RegisterInfo* (*getRegisterInfo)(const struct TargetMachine* self);
+    const InstructionInfo* (*getInstructionInfo)(const struct TargetMachine* self);
+    
+    // 调用约定
+    const CallingConvention* (*getCallingConvention)(const struct TargetMachine* self);
+    
+    // 数据布局
+    const DataLayout* (*getDataLayout)(const struct TargetMachine* self);
+    
+    // 代码生成
+    bool (*emitFunction)(struct TargetMachine* self,
+                       Function* func,
+                       FILE* output);
+    bool (*emitModule)(struct TargetMachine* self,
+                      Module* module,
+                      FILE* output);
+} TargetMachineVTable;
+
+// 目标机器基类
+typedef struct {
+    const TargetMachineVTable* vtable;
+    void* privateData;
+} TargetMachine;
+
+// RISC-V子目标
+typedef enum {
+    RISCV_RV32I,
+    RISCV_RV32M,
+    RISCV_RV32F,
+    RISCV_RV32D,
+    RISCV_RV64I,
+    RISCV_RV64M,
+    RISCV_RV64F,
+    RISCV_RV64D
+} RISCVSubtarget;
+
+// RISC-V目标机器
+typedef struct {
+    TargetMachine base;
+    RISCVSubtarget subtarget;
+    
+    // RISC-V特定数据
+    struct {
+        int xRegisterCount;
+        int fRegisterCount;
+        bool hasExtensionM;
+        bool hasExtensionF;
+        bool hasExtensionD;
+        bool hasExtensionC;
+    } riscvInfo;
+} RISCVTargetMachine;
+
+// 构造函数和析构函数
+TargetMachine* createRISCVTargetMachine(RISCVSubtarget subtarget);
+void destroyTargetMachine(TargetMachine* machine);
+
+// 目标机器操作（通过虚函数表调用）
+static inline const char* targetMachineGetTriple(const TargetMachine* machine) {
+    return machine->vtable->getTriple(machine);
 }
+
+static inline bool targetMachineSetTriple(TargetMachine* machine, const char* triple) {
+    return machine->vtable->setTriple(machine, triple);
+}
+
+static inline const RegisterInfo* targetMachineGetRegisterInfo(const TargetMachine* machine) {
+    return machine->vtable->getRegisterInfo(machine);
+}
+
+static inline const InstructionInfo* targetMachineGetInstructionInfo(const TargetMachine* machine) {
+    return machine->vtable->getInstructionInfo(machine);
+}
+
+static inline const CallingConvention* targetMachineGetCallingConvention(const TargetMachine* machine) {
+    return machine->vtable->getCallingConvention(machine);
+}
+
+static inline const DataLayout* targetMachineGetDataLayout(const TargetMachine* machine) {
+    return machine->vtable->getDataLayout(machine);
+}
+
+static inline bool targetMachineEmitFunction(TargetMachine* machine,
+                                          Function* func,
+                                          FILE* output) {
+    return machine->vtable->emitFunction(machine, func, output);
+}
+
+static inline bool targetMachineEmitModule(TargetMachine* machine,
+                                       Module* module,
+                                       FILE* output) {
+    return machine->vtable->emitModule(machine, module, output);
+}
+
+#endif // TARGET_MACHINE_H
 ```
 
 ## 总结
