@@ -132,14 +132,14 @@ char* tokenToString(const Token* token) {
     if (!token) {
         return strdup("null");
     }
-    const char* typeStr = tokenTypeString(token->type);
+    const char* typeStr = tokenTypeToString(token->type);
     char* result;
 
     if (token->lexeme) {
         asprintf(&result, "Token{type=%s, lexeme='%s', line=%d, col=%d}",
         typeStr, token->lexeme, token->location.line, token->location.column);
     } else {
-        asprintf(&result, "Token{type=%s, line=%d, col=%d}", typeStr, token->location.line, token->column);
+        asprintf(&result, "Token{type=%s, line=%d, col=%d}", typeStr, token->location.line, token->location.column);
 
     }
     return result;

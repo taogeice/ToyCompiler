@@ -5,9 +5,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include "../common/diagnostics/source_location.h"
 
-//Token类型枚举
+// Token类型枚举
 typedef enum {
     // 关键字
     TOKEN_INT,
@@ -49,16 +50,16 @@ typedef enum {
     TOKEN_STATIC_ASSERT,
     TOKEN_THREAD_LOCAL,
     TOKEN_NORETURN,
-    //标识符
+    // 标识符
     TOKEN_IDENTIFIER,
 
-    //字符字面量
+    // 字符字面量
     TOKEN_INTEGER_LITERAL,
     TOKEN_FLOAT_LITERAL,
     TOKEN_CHAR_LITERAL,
     TOKEN_STRING_LITERAL,
 
-    //运算符
+    // 运算符
     TOKEN_PLUS,         // +
     TOKEN_MINUS,        // -
     TOKEN_MULTIPLY,     // *
@@ -88,69 +89,135 @@ typedef enum {
     TOKEN_INCREMENT,    // ++
     TOKEN_DECREMENT,    // --
 
-    //分隔符
-    TOKEN_LPAREN,       //(
-    TOKEN_RPAREN,       //)
-    TOKEN_LBRACE,       //[
-    TOKEN_RBRACE,       //]
-    TOKEN_SEMICOLON,    //;
-    TOKEN_COMMA,        //,
-    TOKEN_DOT,          //.
+    // 分隔符
+    TOKEN_LPAREN,       // (
+    TOKEN_RPAREN,       // )
+    TOKEN_LBRACE,       // [
+    TOKEN_RBRACE,       // ]
+    TOKEN_SEMICOLON,    // ;
+    TOKEN_COMMA,        // ,
+    TOKEN_DOT,          // .
     TOKEN_ARROW,        // ->
-    TOKEN_COLON,        //:
+    TOKEN_COLON,        // :
     TOKEN_QUESTION,     // ?
     TOKEN_ELLIPSSIS,    // ...
-    //特殊标记
-    TOKEN_EOF,          //文件结束符
-    TOKEN_NEWLINE,      //换行符
-    TOKEN_WHITESPACE,   //空格
-    TOKEN_COOMENT,      //注释
-    TOKEN_UNKNOWN,      //未知
+    // 特殊标记
+    TOKEN_EOF,          // 文件结束符
+    TOKEN_NEWLINE,      // 换行符
+    TOKEN_WHITESPACE,   // 空格
+    TOKEN_COMMENT,      // 注释
+    TOKEN_UNKNOWN,      // 未知
 
 } TokenType;
+
+
+// 字面量类型子枚举
+typedef enum {
+    LITERAL_TYPE_DECIMAL,
+    LITERAL_TYPE_HEXADECIMAL,
+    LITERAL_TYPE_OCTAL,
+    LITERAL_TYPE_BINARY,
+    LITERAL_TYPE_FLOAT,
+    LITERAL_TYPE_DOUBLE,
+    LITERAL_TYPE_CHAR,
+    LITERAL_TYPE_WCHAR,
+    LITERAL_TYPE_STRING,
+    LITERAL_TYPE_WSTRING,
+
+} LiteralType;
+
 
 typedef struct {
     TokenType type;
 
-    char* lexeme;   //token文本
-    int line;       //行数
-    int column;     //列数
-    int length;     //token长度
-    SourceLocation location;    //源位置信息
-    //字面量值
+    char* lexeme;   // token文本
+    size_t length;     // token长度
+    SourceLocation location;    // 源位置信息
+    // 字面量值
     union {
-        long long intValue;     //整数值
-        double floatValue;      //浮点数值
-        char charValue;         //字符值
-        char* stringValue;      //字符串值
+        long long intValue;     // 整数值
+        double floatValue;      // 浮点数值
+        char charValue;         // 字符值
+        char* stringValue;      // 字符串值
     } value;
 
     //标志位
-    bool hasValue;      //是否有值
-    bool isWide;        //是否宽字符
+    bool hasValue;      // 是否有值
+    bool isWide;        // 是否宽字符
+    LiteralType literalType;    // 字面量类型
+
+    // 拓展信息
+    unsigned int flags; // 拓展标志位   
+    void* userData;     // 用户数据指针
 
 } Token;
-//Token构造函数和析构函数
+
+
+// Token构造函数和析构函数
 Token* createToken(TokenType type, const char* lexeme, SourceLocation location);
 Token* createTokenWithValue(TokenType type, const char* lexeme, SourceLocation location, long long intValue);
 Token* createTokenWithFloatValue(TokenType type, const char* lexeme, SourceLocation location, double floatValue);
 Token* createTokenWithStringValue(TokenType type, const char* lexeme, SourceLocation location, const char* stringValue, bool isWide);
+Token* createTokenWithCharValue(TokenType type, const char* lexeme, SourceLocation location, char charValue, bool isWide);
 void destroyToken(Token* token);
 
-//Token辅助函数
+// Token辅助函数
 const char* tokenTypeToString(TokenType type);
 bool tokenIsKeyword(TokenType type);
 bool tokenIsOperator(TokenType type);
 bool tokenIsLiteral(TokenType type);
 bool tokenIsPunctuation(TokenType type);
 bool tokenIsAssignmentOperator(TokenType type);
+bool tokenIsComparisonOperator(TokenType type);
+bool tokenIsUnaryOperator(TokenType type);
+bool tokenIsBinaryOperator(TokenType type);
 
-//Token字符串化
+
+// Token字符串化
 char* tokenToString(const Token* token);
+char* tokenToShortString(const Token* token);
 void tokenDump(const Token* token, FILE* output);
+void tokenDumpVerbose(const Token* token, FILE* output);
 
-//源位置函数
+// 源位置函数
 SourceLocation createSourceLocation(const char* filename, int line, int column, int offset);
 char* sourceLocationToString(const SourceLocation* location);
+void destroySourceLocation(SourceLocation* location);
+
+// Token工厂函数
+Token* createEOFtoken(SourceLocation location);
+Token* createIdentifierToken(const char* indentifier, SourceLocation location);
+Token* createIntergerToken(const char* lexeme, SourceLocation location);
+Token* createFloatToken(const char* lexeme, SourceLocation location);
+Token* createCharToken(const char* lexeme, SourceLocation location);
+Token* createStringToken(const char* lexeme, SourceLocation location, bool isWide);
+Token* createOperatorToken(TokenType type, SourceLocation location);
+Token* createPunctuationToken(TokenType type, SourceLocation location);
+
+
+// Token验证函数
+bool tokenIsValid(const Token* token);
+bool tokenHasValidLocation(const Token* token);
+bool tokenHasValidLexeme(const Token* token);
+
+// Token比较函数
+bool tokenEquals(const Token* token1, const Token* token2);
+bool tokenTypeEquals(const Token* token1, TokenType type);
+bool tokenLexemeEquals(const Token* token, const char* lexeme);
+
+
+// Token集合操作
+void tokenSetFlag(Token* token, unsigned int flag);
+void tokenClearFlag(Token* token, unsigned int flag);
+bool tokenHasFlag(const Token* token, unsigned int flag);
+
+
+// 预定义的标志位
+#define TOKEN_FLAG_ESCAPE_SEQUENCE (1 << 0) //包含转义序列
+#define TOKEN_FLAG_RAW_STRING (1 << 1)  //原始字符串
+#define TOKEN_FLAG_UNICODE (1 << 2) // Unicode字符串
+#define TOKEN_FLAG_PREPROCESSOR (1 << 3)    // 预处理
+
+
 
 #endif
