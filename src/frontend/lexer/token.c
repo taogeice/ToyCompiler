@@ -34,6 +34,10 @@ Token* createToken(TokenType type, const char* lexeme, SourceLocation location) 
     token->location = location;
     token->hasValue = false;
     token->isWide = false;
+    token->literalType = LITERAL_TYPE_DECIMAL;
+    token->flags = 0;
+    token->userData = NULL;
+
     if (lexeme) {
         token->lexeme = strdup(lexeme);
         token->length = strlen(lexeme);
@@ -54,7 +58,7 @@ Token* createTokenWithValue(TokenType type, const char* lexeme, SourceLocation l
     if (token) {
         token->value.intValue = intValue;
         token->hasValue = true;
-
+        token->literalType = LITERAL_TYPE_DECIMAL;
     }
     return token;
 }
@@ -65,7 +69,7 @@ Token* createTokenWithFloatValue(TokenType type, const char* lexeme, SourceLocat
     if (token) {
         token->value.floatValue = floatValue;
         token->hasValue = true;
-
+        token->literalType = LITERAL_TYPE_FLOAT;
     }
     return token;
 
@@ -78,12 +82,26 @@ Token* createTokenWithStringValue(TokenType type, const char* lexeme, SourceLoca
         token->value.stringValue = stringValue;
         token->hasValue = true;
         token->isWide = isWide;
-
+        token->literalType = isWide ? LITERAL_TYPE_WCHAR : LITERAL_TYPE_CHAR;
 
     }
 
     return token;
 }
+
+// 创建带字符值的Token
+Token* createTokenWithStringValue(TokenType type, const char* lexeme, SourceLocation location, const char* stringValue, bool isWide) {
+    Token* token = createToken(type, lexeme, location);
+    if (token) {
+        token->value.stringValue = stringValue ? strdup(stringValue) : NULL;
+        token->hasValue = true;
+        token->literalType = isWide ? LITERAL_TYPE_WSTRING : LITERAL_TYPE_STRING;
+
+    }
+    return token;
+}
+
+
 // 销毁token
 void destroyToken(Token* token){
     if (token) {
@@ -100,6 +118,7 @@ void destroyToken(Token* token){
     }
 
 }
+
 // Token类型转字符串
 const char* tokenTypeToString(TokenType type) {
     if (type >= 0 && type < sizeof(tokenTypeStrings) / sizeof(tokenTypeStrings[0])) {
@@ -118,13 +137,46 @@ bool tokenIsKeyword(TokenType type) {
 bool tokenIsOperator(TokenType type) {
     return (type >= TOKEN_PLUS && type <= TOKEN_DECREMENT);
 }
+
 // 判断是否为字面量
 bool tokenIsLiteral(TokenType type) {
     return (type >= TOKEN_INTEGER_LITERAL && type <= TOKEN_STRING_LITERAL);
 }
+
+// 判断是否为标点符号
+bool tokenIsPunctuation(TokenType type) {
+
+    return (type >= TOKEN_ASSIGN && type <= TOKEN_ELLIPSSIS);
+}
+
 // 判断是否为赋值运算符
 bool tokenIsAssignmentOperator(TokenType type) {
     return (type >= TOKEN_ASSIGN && type <= TOKEN_MODULO_ASSIGN) || type == TOKEN_ASSIGN;
+}
+
+// 判断是否为赋值运算符
+bool tokenIsAssignmentOperator(TokenType type) {
+    
+    return (type >= TOKEN_ASSIGN && type <= TOKEN_ALIGNAS) || type == TOKEN_ASSIGN;
+}
+
+// 判断是否为比较运算符
+bool tokenIsComparisonOperator(TokenType type) {
+    return (type >= TOKEN_EQUAL && type <= TOKEN_GREATER_EQUAL);
+}
+
+//判断是否为一元运算符
+bool tokenIsUnaryOperator(TokenType type) {
+
+    return (type >= TOKEN_PLUS || type ==TOKEN_MINUS || type == TOKEN_LOGICAL_NOT || type == TOKEN_BITWISE_NOT || type == TOKEN_INCREMENT || type == TOKEN_DECREMENT );
+}
+
+//判断是否为二元运算符
+bool tokenIsBinaryOperaotr(TokenType type) {
+
+    return (type >= TOKEN_PLUS && type <= TOKEN_MODULO) ||
+           (type >= TOKEN_EQUAL && type <= TOKEN_LOGICAL_OR) ||
+           (type >= TOKEN_BITWISE_AND && type <= TOKEN_RIGHT_SHIFT);
 }
 
 // bool转字符串
@@ -136,11 +188,25 @@ char* tokenToString(const Token* token) {
     char* result;
 
     if (token->lexeme) {
-        asprintf(&result, "Token{type=%s, lexeme='%s', line=%d, col=%d}",
-        typeStr, token->lexeme, token->location.line, token->location.column);
+        asprintf(&result, "Token{type=%s, lexeme='%s', line=%d, col=%d}",typeStr, token->lexeme, token->location.line, token->location.column);
     } else {
         asprintf(&result, "Token{type=%s, line=%d, col=%d}", typeStr, token->location.line, token->location.column);
+    }
+    return result;
 
+}
+
+// Token简短字符串化
+char* tokenToShortString(const Token* token) {
+    if (!token) {
+        return strdup("null");
+    }
+    const char* typeStr = tokenTypeToString(token->type);
+    char* result;
+    if (token->lexeme) {
+        asprintf(&result, "%s('%s')", typeStr, token->lexeme);
+    } else {
+        asprintf(&result, "%s", typeStr);
     }
     return result;
 
@@ -156,7 +222,49 @@ void tokenDump(const Token* token, FILE* output) {
     free(tokenStr);
 
 }
-//创建源位置信息
+// 详细打印token信息
+void tokenDumpVerbose(const Token* token, FILE* output) {
+    if (!token || !output) {
+        return;
+    }
+    fprintf(output, "=== Token Details ===\n");
+    fprintf(output, "Type: %s\n", tokenTypeToString(token->type));
+    fprintf(output, "Lexeme: %s\n", token->lexeme ? token->lexeme : "(null)");
+    fprintf(output, "Length: %zu\n", token->length);
+    fprintf(output, "Location: %s\n", sourceLocationToString(&token->location));
+    fprintf(output, "Has Value: %s\n", token->hasValue ? "true" : "false");
+    if (token->hasValue) {
+        switch (token->type)
+        {
+        case TOKEN_INTEGER_LITERAL:
+            
+            fprintf(output, "Integer Value: %lld\n", token->value.intValue);
+            break;
+        case TOKEN_FLOAT_LITERAL:
+
+            fprintf(output, "Float Value: %f\n", token->value.floatValue);
+            break;
+        case TOKEN_CHAR_LITERAL:
+
+            fprintf(output, "Char Value: '%c' (wide: %s)\n", token->value.charValue, token->isWide ? "true" : "false");
+            break;
+        case TOKEN_STRING_LITERAL:
+
+            fprintf(output, "String Value: \%s\" (wide: %s)\n", token->value.stringValue, token->isWide ? "true" : "false");
+            break;
+
+        default:
+            break;
+        }
+
+        fprintf(output, "Is Wide: %s\n", token->isWide ? "true" : "false");
+        fprintf(output, "Literal Type: %d\n", token->literalType);
+        fprintf(output, "Flags: %d\n", token->flags);
+        fprintf(output, "=====================\n");
+
+    }
+}
+// 创建源位置信息
 SourceLocation createSourceLocation(const char* filename, int line,int column, int offset) {
     SourceLocation loc;
     loc.filename = filename ? strdup(filename) : NULL;
@@ -180,3 +288,40 @@ char* sourceLocationToString(const SourceLocation* location) {
     return result;
 }
 
+// 销毁源位置信息
+void destroySouceLocation(SourceLocation* location) {
+    if (location && location->filename) {
+        free(location->filename);
+        location->filename = NULL;
+    }
+}
+
+// token工厂函数实现
+Token* createEOFToken(SourceLocation location) {
+    return createToken(TOKEN_EOF, NULL, location);
+}
+
+Token* createIdentifierToken(const char* indentifier, SourceLocation location) {
+    return createToken(TOKEN_IDENTIFIER, indentifier, location);
+
+}
+Token* createIntergerToken(const char* lexeme, SourceLocation location, int base) {
+    long long value = strtoll(lexeme, NULL, base);
+    Token* token = createTokenWithValue(TOKEN_INTEGER_LITERAL, lexeme, location, value);
+    if (token) {
+        switch (base)
+        {
+        case 16: token->literalType = LITERAL_TYPE_HEXADECIMAL;
+            break;
+        case 8: token->literalType = LITERAL_TYPE_OCTAL;
+            break;
+        case 2: token->literalType = LITERAL_TYPE_BINARY;
+            break;
+        default:
+            token->literalType = LITERAL_TYPE_DECIMAL;
+            break;
+        }
+    }
+    return token;
+
+}
