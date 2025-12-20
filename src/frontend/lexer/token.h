@@ -66,12 +66,14 @@ typedef enum {
     TOKEN_DIVIDE,       // /
     TOKEN_MODULO,       // %
     TOKEN_ASSIGN,       // =
+
     // 赋值运算符
     TOKEN_PLUS_ASSIGN,  // +=      
     TOKEN_MINUS_ASSIGN, // -=
     TOKEN_MULTIPLY_ASSIGN,  // *=
     TOKEN_DIVIDE_ASSIGN,    // /=
     TOKEN_MODULO_ASSIGN,    // %=
+
     // 比较符
     TOKEN_EQUAL,        // ==
     TOKEN_NOT_EQUAL,    // !=    
@@ -79,6 +81,7 @@ typedef enum {
     TOKEN_LESS_EQUAL,   // <=
     TOKEN_GREATER,      // >
     TOKEN_GREATER_EQUAL,    // >=
+
     // 逻辑运算符
     TOKEN_LOGICAL_AND,  // &&      
     TOKEN_LOGICAL_OR,   // ||
@@ -89,6 +92,7 @@ typedef enum {
     TOKEN_BITWISE_XOR,  // ^
     TOKEN_LEFT_SHIFT,   // <<
     TOKEN_RIGHT_SHIFT,  // >>
+
     // 自增自减
     TOKEN_INCREMENT,    // ++
     TOKEN_DECREMENT,    // --
@@ -105,6 +109,7 @@ typedef enum {
     TOKEN_COLON,        // :
     TOKEN_QUESTION,     // ?
     TOKEN_ELLIPSSIS,    // ...
+    
     // 特殊标记
     TOKEN_EOF,          // 文件结束符
     TOKEN_NEWLINE,      // 换行符

@@ -1,0 +1,379 @@
+# 编译产物
+*.o
+*.obj
+*.exe
+toycompiler
+tcc
+test_*
+debug_*
+toycompiler.exe
+# AI分析文档
+CLAUDE.md
+.claude/
+plans/
+doc/
+# 静态库和动态库
+*.a
+*.lib
+*.so
+*.dll
+*.dylib
+
+# 构建目录
+build/
+Build/
+cmake-build-*/
+out/
+dist/
+bin/
+lib/
+
+# CMake构建文件
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+!cmake/
+
+# 其他构建系统
+*.mk
+*.mak
+.npm/
+.node/
+
+# IDE和编辑器文件
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+.vscode/settings.json
+.vscode/launch.json
+.vscode/extensions.json
+.vscode/tasks.json
+
+# Vim临时文件
+*.tmp
+*.bak
+*.orig
+*.rej
+
+# 调试文件
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# 测试覆盖率文件
+*.gcda
+*.gcno
+*.gcov
+coverage/
+lcov.info
+
+# 日志文件
+*.log
+logs/
+
+# 临时文件
+tmp/
+temp/
+*.temp
+*.tmp
+
+# 核心转储文件
+core
+core.*
+
+# GDB配置
+.gdb_history
+
+# Valgrind输出
+valgrind-*.log
+
+# Clang静态分析
+clang-analyzer-*
+
+# 性能分析文件
+*.prof
+*.profraw
+*.profdata
+
+# 自动生成的文档
+docs/html/
+docs/latex/
+doxygen/
+*.dox
+
+# 预编译头文件
+*.gch
+*.pch
+
+# Python缓存文件（如果有Python脚本）
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Node.js相关（如果有Node工具）
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 备份文件
+*.backup
+*.old
+*.save
+
+# 压缩文件
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# 系统文件
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# 特定于编译器项目的文件
+# 词法分析器生成的文件（如果使用flex）
+lexer.c
+lex.yy.c
+
+# 语法分析器生成的文件（如果使用bison/yacc）
+parser.c
+parser.h
+y.tab.c
+y.tab.h
+
+# 测试输入/输出文件
+test_input.c
+test_output.*
+expected.*
+actual.*
+
+# 示例程序的编译结果
+examples/*/*.o
+examples/*/*.exe
+examples/*/output
+examples/*/build
+
+# 基准测试结果
+benchmark_results/
+*.benchmark
+
+# 代码覆盖率报告
+coverage/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+
+# SonarQube
+.sonar/
+
+# 编译器特定的临时文件
+*.i
+*.ii
+*.s
+*.S
+
+# 链接器映射文件
+*.map
+*.lds
+
+# 调试信息数据库
+.debug/
+
+# 编译器配置文件（用户特定）
+.user_config
+local_config.h
+
+# 内存检查工具输出
+valgrind-*.xml
+addresssanitizer-*.txt
+
+# 模糊测试相关
+fuzz_corpus/
+fuzz_crashes/
+
+# 性能分析数据
+perf.data*
+callgrind.out.*
+
+# 编译器测试套件输出
+test_results/
+test_reports/
+
+# 持续集成临时文件
+ci_temp/
+ci_output/
+
+# 自动生成的依赖文件
+*.d
+*.dep
+*.deps
+
+# 预处理输出
+*.E
+*.P
+
+# 汇编输出
+*.asm
+
+# 对象转储
+*.dump
+
+# 符号表
+*.sym
+
+# 重定位信息
+*.rel
+*.rela
+
+# 代码统计临时文件
+cloc_temp/
+
+# 代码格式化备份
+*.formatted
+*.orig_format
+
+# 静态分析缓存
+static_analysis_cache/
+
+# 代码审查临时文件
+review_temp/
+
+# 交叉编译相关
+cross_compile_output/
+target_build/
+
+# 文档构建临时文件
+docs/_build/
+docs/.doctrees/
+
+# API文档生成
+api_docs/
+
+# 自动生成的版本信息
+version.h
+git_version.h
+
+# 包管理器缓存
+package_cache/
+
+# Docker相关（如果有）
+.dockerignore
+
+# 特定测试框架文件
+googletest/
+gtest/
+*.gtest
+
+# 内存池调试文件
+memory_leaks_*
+memory_debug_*
+
+# 编译时间统计
+compile_time_stats.txt
+
+# 代码生成输出
+generated_code/
+asm_output/
+obj_output/
+
+# 符号转储文件
+symbol_dump_*
+
+# AST转储文件
+ast_dump_*
+ast_visualization_*
+
+# IR转储文件
+ir_dump_*
+ir_visualization_*
+
+# 寄存器分配输出
+regalloc_debug_*
+
+# 优化Pass输出
+optimization_debug_*
+pass_statistics_*
+
+# 目标代码输出
+target_code_*
+machine_code_*
+
+# 错误恢复日志
+error_recovery_*
+
+# 预处理器输出
+preprocessed_*
+macro_expansion_*
+
+# 类型检查输出
+type_check_*
+type_inference_*
+
+# 语义分析输出
+semantic_analysis_*
+
+# 代码生成日志
+codegen_*
+emission_*
+
+# 链接日志
+linking_*
+resolution_*
+
+# 运行时输出
+runtime_*
+execution_trace_*
+
+# 性能基准测试输出
+benchmark_trace_*
+performance_profile_*
+
+# 内存使用分析
+memory_usage_*
+allocation_trace_*
+
+# 编译器统计
+compiler_stats_*
+compilation_metrics_*
+
+# 错误报告
+error_report_*
+diagnostic_*
+
+# 警告报告
+warning_report_*
+
+# 代码覆盖率详细报告
+detailed_coverage_*
+
+# 测试套件输出
+test_suite_*
+unit_test_*
+integration_test_*
+
+# 回归测试输出
+regression_test_*
+
+# 压力测试输出
+stress_test_*
+
+# 安全测试输出
+security_test_*
+fuzz_test_*
