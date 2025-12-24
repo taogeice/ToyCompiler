@@ -194,9 +194,9 @@ char* sourceLocationToString(const SourceLocation* location);
 void destroySourceLocation(SourceLocation* location);
 
 // Token工厂函数
-Token* createEOFtoken(SourceLocation location);
-Token* createIdentifierToken(const char* indentifier, SourceLocation location);
-Token* createIntergerToken(const char* lexeme, SourceLocation location);
+Token* createEOFToken(SourceLocation location);
+Token* createIdentifierToken(const char* identifier, SourceLocation location);
+Token* createIntegerToken(const char* lexeme, SourceLocation location, int base);
 Token* createFloatToken(const char* lexeme, SourceLocation location);
 Token* createCharToken(const char* lexeme, SourceLocation location);
 Token* createStringToken(const char* lexeme, SourceLocation location, bool isWide);
