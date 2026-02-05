@@ -1,9 +1,12 @@
 #include "lexer.h"
+#include "../../common/containers/vector.h"
+#include "../../common/diagnostics/diagnostic_engine.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <errno.h>
+#include <stdarg.h>
 
 // ==================== 内部辅助类型 ====================
 
@@ -14,6 +17,14 @@ typedef struct {
     const char* keyword;
     TokenType tokenType;
 } KeywordEntry;
+
+/**
+ * @brief 预处理指令表项
+ */
+typedef struct {
+    const char* directive;
+    TokenType tokenType;
+} PreprocessorDirectiveEntry;
 
 /**
  * @brief 关键字映射表
@@ -71,7 +82,117 @@ static const KeywordEntry keywordTable[] = {
 
 #define KEYWORD_COUNT (sizeof(keywordTable) / sizeof(KeywordEntry) - 1)
 
+/**
+ * @brief 预处理指令映射表
+ */
+static const PreprocessorDirectiveEntry preprocessorDirectiveTable[] = {
+    {"define", TOKEN_PREPROCESSOR_DEFINE},
+    {"undef", TOKEN_PREPROCESSOR_UNDEF},
+    {"include", TOKEN_PREPROCESSOR_INCLUDE},
+    {"if", TOKEN_PREPROCESSOR_IF},
+    {"ifdef", TOKEN_PREPROCESSOR_IFDEF},
+    {"ifndef", TOKEN_PREPROCESSOR_IFNDEF},
+    {"elif", TOKEN_PREPROCESSOR_ELIF},
+    {"else", TOKEN_PREPROCESSOR_ELSE},
+    {"endif", TOKEN_PREPROCESSOR_ENDIF},
+    {"line", TOKEN_PREPROCESSOR_LINE},
+    {"error", TOKEN_PREPROCESSOR_ERROR},
+    {"pragma", TOKEN_PREPROCESSOR_PRAGMA},
+    {"warning", TOKEN_PREPROCESSOR_WARNING},
+    {NULL, TOKEN_HASH}  // 哨兵值
+};
+
+#define PREPROCESSOR_DIRECTIVE_COUNT (sizeof(preprocessorDirectiveTable) / sizeof(PreprocessorDirectiveEntry) - 1)
+
 // ==================== 内部辅助函数 ====================
+
+/**
+ * @brief 报告词法错误
+ */
+static void lexerReportError(Lexer* lexer, LexerErrorType errorType,
+                             SourceLocation location, const char* format, ...) {
+    if (!lexer || !lexer->diagnostics) {
+        return;
+    }
+
+    va_list args;
+    va_start(args, format);
+
+    // 计算所需缓冲区大小
+    va_list args_copy;
+    va_copy(args_copy, args);
+    int len = vsnprintf(NULL, 0, format, args_copy);
+    va_end(args_copy);
+
+    char* message = NULL;
+    if (len >= 0) {
+        message = (char*)malloc(len + 1);
+        if (message) {
+            vsnprintf(message, len + 1, format, args);
+        }
+    }
+    va_end(args);
+
+    // 根据错误类型确定诊断级别
+    DiagnosticLevel level = DIAGNOSTIC_LEVEL_ERROR;
+    switch (errorType) {
+        case LEX_ERROR_INVALID_CHARACTER:
+        case LEX_ERROR_INVALID_ESCAPE_SEQUENCE:
+        case LEX_ERROR_INVALID_NUMBER_FORMAT:
+        case LEX_ERROR_INVALID_UNICODE:
+            level = DIAGNOSTIC_LEVEL_ERROR;
+            break;
+        case LEX_ERROR_UNTERMINATED_COMMENT:
+        case LEX_ERROR_UNTERMINATED_CHAR:
+        case LEX_ERROR_UNTERMINATED_STRING:
+        case LEX_ERROR_EOF_IN_PREPROCESSOR:
+        case LEX_ERROR_MISMATCHED_BRACKET:
+            level = DIAGNOSTIC_LEVEL_FATAL;
+            break;
+    }
+
+    diagnosticEngineReport(lexer->diagnostics, level, location,
+                          "lexer: %s", message ? message : "unknown error");
+
+    if (message) {
+        free(message);
+    }
+}
+
+/**
+ * @brief 报告词法警告
+ */
+static void lexerReportWarning(Lexer* lexer, SourceLocation location,
+                              const char* format, ...) {
+    if (!lexer || !lexer->diagnostics) {
+        return;
+    }
+
+    va_list args;
+    va_start(args, format);
+
+    // 计算所需缓冲区大小
+    va_list args_copy;
+    va_copy(args_copy, args);
+    int len = vsnprintf(NULL, 0, format, args_copy);
+    va_end(args_copy);
+
+    char* message = NULL;
+    if (len >= 0) {
+        message = (char*)malloc(len + 1);
+        if (message) {
+            vsnprintf(message, len + 1, format, args);
+        }
+    }
+    va_end(args);
+
+    diagnosticEngineReport(lexer->diagnostics, DIAGNOSTIC_LEVEL_WARNING, location,
+                          "lexer: %s", message ? message : "unknown warning");
+
+    if (message) {
+        free(message);
+    }
+}
 
 /**
  * @brief 获取当前字符
@@ -318,10 +439,11 @@ static void lexerSkipLineComment(Lexer* lexer) {
  */
 static bool lexerSkipBlockComment(Lexer* lexer) {
     // 跳过 /*
-    lexerAdvance(lexer);
-    lexerAdvance(lexer);
-
+    size_t startOffset = lexer->position;
     size_t startLine = lexer->line;
+    size_t startColumn = lexer->column;
+    lexerAdvance(lexer);
+    lexerAdvance(lexer);
 
     while (!lexerIsAtEnd(lexer)) {
         char ch = lexerCurrentChar(lexer);
@@ -336,7 +458,16 @@ static bool lexerSkipBlockComment(Lexer* lexer) {
         lexerAdvance(lexer);
     }
 
-    // 注释未闭合
+    // 注释未闭合 - 报告错误
+    SourceLocation location = createSourceLocation(
+        lexer->filename,
+        (int)startLine,
+        (int)startColumn,
+        (int)startOffset
+    );
+    lexerReportError(lexer, LEX_ERROR_UNTERMINATED_COMMENT, location,
+                    "unterminated block comment");
+
     return false;
 }
 
@@ -432,6 +563,88 @@ static Token lexerReadIdentifier(Lexer* lexer) {
 
     Token* token = createToken(type, lexeme, location);
     free(lexeme);
+
+    if (token) {
+        return *token;
+    }
+    return *createEOFToken(location);
+}
+
+// ==================== 预处理指令识别 ====================
+
+/**
+ * @brief 检查字符串是否为预处理指令
+ */
+static TokenType lexerIsPreprocessorDirective(const char* str) {
+    if (!str) {
+        return TOKEN_IDENTIFIER;
+    }
+
+    // 线性搜索预处理指令表
+    for (size_t i = 0; i < PREPROCESSOR_DIRECTIVE_COUNT; i++) {
+        if (strcmp(preprocessorDirectiveTable[i].directive, str) == 0) {
+            return preprocessorDirectiveTable[i].tokenType;
+        }
+    }
+
+    return TOKEN_IDENTIFIER;
+}
+
+/**
+ * @brief 读取预处理指令
+ */
+static Token lexerReadPreprocessorDirective(Lexer* lexer) {
+    size_t startColumn = lexer->column;
+    size_t startLine = lexer->line;
+    size_t startOffset = lexer->position;
+
+    // 跳过 #
+    lexerAdvance(lexer);
+
+    // 跳过 # 后的空白
+    lexerSkipWhitespace(lexer);
+
+    // 读取指令名称
+    size_t directiveStart = lexer->position;
+    while (!lexerIsAtEnd(lexer) && isalpha(lexerCurrentChar(lexer))) {
+        lexerAdvance(lexer);
+    }
+
+    // 提取指令名称
+    size_t directiveLength = lexer->position - directiveStart;
+    char* directive = (char*)malloc(directiveLength + 1);
+    if (!directive) {
+        return *createEOFToken(lexerCreateCurrentLocation(lexer));
+    }
+    memcpy(directive, lexer->source + directiveStart, directiveLength);
+    directive[directiveLength] = '\0';
+
+    // 检查是否为已知预处理指令
+    TokenType type = lexerIsPreprocessorDirective(directive);
+
+    // 创建源位置
+    SourceLocation location = createSourceLocation(
+        lexer->filename,
+        (int)startLine,
+        (int)startColumn,
+        (int)startOffset
+    );
+
+    // 读取整行作为词素
+    while (!lexerIsAtEnd(lexer) && lexerCurrentChar(lexer) != '\n') {
+        lexerAdvance(lexer);
+    }
+
+    size_t lexemeLength = lexer->position - startOffset;
+    char* lexeme = (char*)malloc(lexemeLength + 1);
+    if (lexeme) {
+        memcpy(lexeme, lexer->source + startOffset, lexemeLength);
+        lexeme[lexemeLength] = '\0';
+    }
+
+    Token* token = createToken(type, lexeme ? lexeme : directive, location);
+    free(directive);
+    if (lexeme) free(lexeme);
 
     if (token) {
         return *token;
@@ -1075,11 +1288,11 @@ static Token lexerReadOperatorOrPunctuation(Lexer* lexer) {
 
         case '[':
             lexerAdvance(lexer);
-            return *createPunctuationToken(TOKEN_LBRACE, location);
+            return *createPunctuationToken(TOKEN_LBRACKET, location);
 
         case ']':
             lexerAdvance(lexer);
-            return *createPunctuationToken(TOKEN_RBRACE, location);
+            return *createPunctuationToken(TOKEN_RBRACKET, location);
 
         case '{':
             lexerAdvance(lexer);
@@ -1148,6 +1361,11 @@ Token lexerNextToken(Lexer* lexer) {
 
     char ch = lexerCurrentChar(lexer);
 
+    // 预处理指令
+    if (ch == '#') {
+        return lexerReadPreprocessorDirective(lexer);
+    }
+
     // 标识符或关键字
     if (isalpha(ch) || ch == '_') {
         return lexerReadIdentifier(lexer);
@@ -1203,27 +1421,38 @@ Token lexerPeekToken(Lexer* lexer) {
 
 /**
  * @brief 对整个源代码进行词法分析
+ * @param lexer 词法分析器
+ * @return token向量（Vector<Token>），失败返回NULL
  */
 Vector* lexerTokenize(Lexer* lexer) {
-    // 注意：这里简单返回NULL，实际实现需要Vector数据结构
-    // 假设Vector是一个动态数组，可以使用以下伪代码：
-    //
-    // Vector* tokens = createVector();
-    // if (!tokens) return NULL;
-    //
-    // while (true) {
-    //     Token token = lexerNextToken(lexer);
-    //     if (token.type == TOKEN_EOF) {
-    //         // 复制EOF token并添加到数组
-    //         vectorPushBack(tokens, &token);
-    //         break;
-    //     }
-    //     vectorPushBack(tokens, &token);
-    // }
-    //
-    // return tokens;
+    if (!lexer) {
+        return NULL;
+    }
 
-    return NULL;
+    // 创建Vector来存储Token
+    Vector* tokens = vectorCreate(sizeof(Token), 16);
+    if (!tokens) {
+        return NULL;
+    }
+
+    // 循环获取所有token
+    while (true) {
+        Token token = lexerNextToken(lexer);
+
+        // 将token添加到Vector
+        if (!vectorPushBack(tokens, &token)) {
+            // 添加失败，清理已创建的token
+            vectorDestroy(tokens, (void (*)(void*))destroyToken);
+            return NULL;
+        }
+
+        // 检查是否到达文件末尾
+        if (token.type == TOKEN_EOF) {
+            break;
+        }
+    }
+
+    return tokens;
 }
 
 // ==================== 状态管理 ====================

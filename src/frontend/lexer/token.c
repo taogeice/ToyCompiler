@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include "../../common/diagnostics/source_location.h"
 
 //Token类型到字符串的映射表
 static const char* tokenTypeStrings[] = {
@@ -10,17 +11,28 @@ static const char* tokenTypeStrings[] = {
     "int", "float", "char", "double", "void", "if", "else", "while", "for", "do",
     "return", "break", "continue", "switch", "case", "default", "struct", "union",
     "enum", "typedef", "static", "extern", "const", "unsigned", "signed", "sizeof",
-    "auto", "register", "volatile", "goto", "alignas", "alignof", "atomic", "generic",
-    "static_assert", "thread_local", "noreturn",
+    "auto", "register", "volatile", "goto",
+    //C11/C17 新增关键字
+    "alignas", "alignof", "atomic", "generic", "static_assert", "thread_local", "noreturn",
     //标识符和字面量
-    "identifier", "integer_literal", "float_literal", "char_literal", "string_literal",
+    "identifier",
+    "integer_literal", "float_literal", "char_literal", "string_literal",
     //运算符
-    "+", "-", "*", "/", "%", "=", "+=", "-=", "*=", "/=", "%=", "==", "!=", "<", "<=",
-    ">", ">=", "&&", "||", "!", "&", "|", "~", "^", "<<", ">>", "++", "--",
+    "+", "-", "*", "/", "%", "=",
+    "+=", "-=", "*=", "/=", "%=",
+    "==", "!=", "<", "<=", ">", ">=",
+    "&&", "||", "!",
+    "&", "|", "~", "^", "<<", ">>",
+    "++", "--",
     //分隔符
-    "{", "}", "(", ")", "[", "]", ".", ",", ";", ":", "?", "...", "->", "->*",
+    "(", ")", "[", "]", ";", ",", ".", "->", ":", "?", "...",
+    "{", "}",
     // 特殊标记
-    "eof", "newline", "whitespace", "comment", "preprocessor", "unknown"
+    "eof", "newline", "whitespace", "comment", "unknown",
+    // 预处理指令
+    "#", "##",
+    "#define", "#undef", "#include", "#if", "#ifdef", "#ifndef",
+    "#elif", "#else", "#endif", "#line", "#error", "#pragma", "#warning"
 };
 
 // 创建token
@@ -143,8 +155,11 @@ bool tokenIsLiteral(TokenType type) {
 
 // 判断是否为标点符号
 bool tokenIsPunctuation(TokenType type) {
-
-    return (type >= TOKEN_ASSIGN && type <= TOKEN_ELLIPSSIS);
+    return (type >= TOKEN_LPAREN && type <= TOKEN_RBRACE) ||
+           (type == TOKEN_SEMICOLON || type == TOKEN_COMMA ||
+            type == TOKEN_DOT || type == TOKEN_ARROW ||
+            type == TOKEN_COLON || type == TOKEN_QUESTION ||
+            type == TOKEN_ELLIPSSIS);
 }
 
 // 判断是否为赋值运算符

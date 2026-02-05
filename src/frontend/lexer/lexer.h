@@ -4,11 +4,26 @@
 #include "token.h"
 #include <stdbool.h>
 #include <stddef.h>
+#include "../../common/containers/vector.h"
 
 // 前向声明
 typedef struct DiagnosticEngine DiagnosticEngine;
 typedef struct HashTable HashTable;
-typedef struct Vector Vector;
+
+/**
+ * @brief 词法错误类型
+ */
+typedef enum {
+    LEX_ERROR_INVALID_CHARACTER,          // 非法字符
+    LEX_ERROR_UNTERMINATED_COMMENT,       // 未终止的注释
+    LEX_ERROR_UNTERMINATED_CHAR,          // 未终止的字符字面量
+    LEX_ERROR_UNTERMINATED_STRING,        // 未终止的字符串字面量
+    LEX_ERROR_INVALID_ESCAPE_SEQUENCE,    // 非法转义序列
+    LEX_ERROR_INVALID_NUMBER_FORMAT,      // 非法数字格式
+    LEX_ERROR_INVALID_UNICODE,            // 非法Unicode字符
+    LEX_ERROR_EOF_IN_PREPROCESSOR,        // 预处理指令中遇到文件结束
+    LEX_ERROR_MISMATCHED_BRACKET          // 括号不匹配
+} LexerErrorType;
 
 /**
  * @brief 词法分析器结构体

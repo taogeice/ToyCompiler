@@ -53,7 +53,7 @@ Makefile
 .vscode/launch.json
 .vscode/extensions.json
 .vscode/tasks.json
-
+.serena/
 # Vim临时文件
 *.tmp
 *.bak

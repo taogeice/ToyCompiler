@@ -6,7 +6,8 @@
 #include <string.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include "../common/diagnostics/source_location.h"
+#include <string.h>
+#include "../../common/diagnostics/source_location.h"
 
 // Token类型枚举
 typedef enum {
@@ -100,8 +101,10 @@ typedef enum {
     // 分隔符
     TOKEN_LPAREN,       // (
     TOKEN_RPAREN,       // )
-    TOKEN_LBRACE,       // [
-    TOKEN_RBRACE,       // ]
+    TOKEN_LBRACKET,     // [
+    TOKEN_RBRACKET,     // ]
+    TOKEN_LBRACE,       // {
+    TOKEN_RBRACE,       // }
     TOKEN_SEMICOLON,    // ;
     TOKEN_COMMA,        // ,
     TOKEN_DOT,          // .
@@ -116,6 +119,23 @@ typedef enum {
     TOKEN_WHITESPACE,   // 空格
     TOKEN_COMMENT,      // 注释
     TOKEN_UNKNOWN,      // 未知
+
+    // 预处理指令
+    TOKEN_HASH,         // #
+    TOKEN_HASH_HASH,    // ##
+    TOKEN_PREPROCESSOR_DEFINE,     // #define
+    TOKEN_PREPROCESSOR_UNDEF,      // #undef
+    TOKEN_PREPROCESSOR_INCLUDE,    // #include
+    TOKEN_PREPROCESSOR_IF,         // #if
+    TOKEN_PREPROCESSOR_IFDEF,      // #ifdef
+    TOKEN_PREPROCESSOR_IFNDEF,     // #ifndef
+    TOKEN_PREPROCESSOR_ELIF,       // #elif
+    TOKEN_PREPROCESSOR_ELSE,       // #else
+    TOKEN_PREPROCESSOR_ENDIF,      // #endif
+    TOKEN_PREPROCESSOR_LINE,       // #line
+    TOKEN_PREPROCESSOR_ERROR,      // #error
+    TOKEN_PREPROCESSOR_PRAGMA,     // #pragma
+    TOKEN_PREPROCESSOR_WARNING,    // #warning
 
 } TokenType;
 
